@@ -8,12 +8,12 @@
     "aframe": "bun ../node_modules/@aklinker1/aframe/bin/aframe.ts",
     "dev": "bun aframe",
     "build": "bun aframe build",
-    "preview": "bun .output/server-entry.js",
+    "preview": "bun aframe build && bun .output/server-entry.ts",
     "gen": "bun gen:sqlite",
     "gen:sqlite": "drizzle-kit generate --dialect sqlite --schema server/db/sqlite --out server/drizzle/sqlite --casing snake_case"
   },
   "dependencies": {
-    "@aklinker1/aframe": "^1.2.0",
+    "@aklinker1/aframe": "^1.2.2",
     "@aklinker1/zero-ioc": "^1.5.1",
     "@aklinker1/zeta": "^2.2.0",
     "@egoist/tailwindcss-icons": "^1.9.2",

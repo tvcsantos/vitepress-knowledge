@@ -31,9 +31,8 @@ const app = createApp({
   .mount(
     fetchStatic({
       // Apply template vars to HTML files
-      onFetch: async (path, file) => {
-        console.log("Transforming static file:", path, file);
-        if (path.includes(".html")) {
+      onFetch: async (_, file) => {
+        if (file.name?.endsWith("public/index.html")) {
           const html = applyAppTemplateVars(await file.text());
           return new Response(html, {
             headers: {

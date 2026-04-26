@@ -5,7 +5,18 @@ import pc from "picocolors";
 export const requestLoggerPlugin = createApp()
   .onGlobalRequest(({ request }) => {
     consola.info(
-      `${pc.cyan("[http]")} ${getRequestColor(request.method)(request.method)} ${request.url}`,
+      `${pc.cyan("[http]")} <-- ${getRequestColor(request.method)(request.method)} ${request.url}`,
+    );
+  })
+  .onGlobalAfterResponse(({ request, response }) => {
+    consola.info(
+      `${pc.cyan("[http]")} --> ${getRequestColor(request.method)(request.method)} ${request.url} ${response.status ?? 200}`,
+    );
+  })
+  .onGlobalError(({ request, error }) => {
+    consola.error(
+      `${pc.cyan("[http]")} ${getRequestColor(request.method)(request.method)} ${request.url} ERROR`,
+      error,
     );
   })
   .export();

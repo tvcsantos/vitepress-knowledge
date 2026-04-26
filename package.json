@@ -8,7 +8,9 @@
   "scripts": {
     "check": "check && bun run --cwd plugin build && bun tsc -b && bun --cwd plugin check && bun --cwd backend check",
     "dev": "bun run --parallel docs:dev backend:dev",
+    "preview": "bun run --workspaces build && bun run --parallel backend:preview docs:dev",
     "backend:dev": "bun --cwd backend dev",
+    "backend:preview": "bun --cwd backend preview",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
