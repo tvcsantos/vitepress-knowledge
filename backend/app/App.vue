@@ -128,7 +128,9 @@ const appName = APP_NAME;
     <div class="shrink-0 m-2 flex flex-col gap-2">
       <div v-if="error" class="bg-(--c-warning)/20 rounded p-4 flex gap-4">
         <i class="text-(--c-warning) i-heroicons-exclaimation-triangle" />
-        <p class="flex-1">{{ error.cause?.message ?? error }}</p>
+        <p class="flex-1">
+          {{ (error.cause as Error | undefined)?.message ?? error?.message }}
+        </p>
       </div>
       <form
         class="relative pr-0.5 bg-(--c-default-soft) ring-0 ring-(--c-brand) focus-within:ring-2 rounded transition"
