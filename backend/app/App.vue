@@ -48,7 +48,7 @@ const sendMessage = async () => {
       body: {
         conversationId: conversationId.value,
         messages: newThreadMessages,
-        model: "gemini-2.0-flash",
+        model: "gemini-flash-latest",
       },
     });
 

@@ -8,6 +8,12 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY?.trim();
 // Models
 
 const GEMINI_2_0_FLASH = process.env.GEMINI_2_0_FLASH === "true";
+const GEMINI_2_5_FLASH = process.env.GEMINI_2_5_FLASH === "true";
+const GEMINI_3_FLASH_PREVIEW = process.env.GEMINI_3_FLASH_PREVIEW === "true";
+const GEMINI_3_PRO_PREVIEW = process.env.GEMINI_3_PRO_PREVIEW === "true";
+const GEMINI_3_1_PRO_PREVIEW = process.env.GEMINI_3_1_PRO_PREVIEW === "true";
+const GEMINI_FLASH_LATEST = process.env.GEMINI_FLASH_LATEST === "true";
+const GEMINI_PRO_LATEST = process.env.GEMINI_PRO_LATEST === "true";
 const CLAUDE_3_5_SONNET = process.env.CLAUDE_3_5_SONNET === "true";
 const CLAUDE_3_5_HAIKU = process.env.CLAUDE_3_5_HAIKU === "true";
 
@@ -51,6 +57,12 @@ const env = {
   GOOGLE_API_KEY,
   ANTHROPIC_API_KEY,
   GEMINI_2_0_FLASH,
+  GEMINI_2_5_FLASH,
+  GEMINI_3_FLASH_PREVIEW,
+  GEMINI_3_PRO_PREVIEW,
+  GEMINI_3_1_PRO_PREVIEW,
+  GEMINI_FLASH_LATEST,
+  GEMINI_PRO_LATEST,
   CLAUDE_3_5_SONNET,
   CLAUDE_3_5_HAIKU,
   DATABASE_TYPE,
