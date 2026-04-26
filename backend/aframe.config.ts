@@ -34,5 +34,5 @@ export default defineConfig({
       },
     },
   },
-  prerenderer: false,
+  prerender: false,
 });

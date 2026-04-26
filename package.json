@@ -6,19 +6,18 @@
     "backend"
   ],
   "scripts": {
-    "dev": "run-p dev:*",
-    "dev:docs": "vitepress dev docs",
-    "dev:backend": "bun --cwd backend dev",
     "check": "bun run --cwd plugin build && bun tsc -b && bun --cwd plugin check --binDir ../node_modules/.bin && bun --cwd backend check --binDir ../node_modules/.bin",
-    "docs:dev": "",
+    "dev": "bun run --parallel docs:dev backend:dev",
+    "backend:dev": "bun --cwd backend dev",
+    "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "docker:build": "docker build -t aklinker1/vitepress-knowledge-server .",
+    "docker:run": "docker run --init -it --rm -p 3000:3000 aklinker1/vitepress-knowledge-server"
   },
-  "dependencies": {},
   "devDependencies": {
     "@aklinker1/check": "^1.4.5",
     "@types/bun": "^1.3.12",
-    "npm-run-all": "^4.1.5",
     "oxlint": "^0.15.5",
     "prettier": "^3.4.2",
     "typescript": "^5.0.0"

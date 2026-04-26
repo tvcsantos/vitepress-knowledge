@@ -8,6 +8,8 @@ import { privacyPolicyRoute } from "./routes/privacy-policy";
 import { swaggerRoute } from "./routes/swagger";
 import { applyAppTemplateVars } from "./utils/template-vars";
 
+console.log("MAIN?");
+
 const app = new Elysia()
   .use(requestLogger)
   .use(swaggerRoute)
