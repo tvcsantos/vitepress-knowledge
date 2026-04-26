@@ -1,4 +1,4 @@
-name: Release
+name: Release Backend
 on:
   workflow_dispatch:
     inputs:
@@ -41,8 +41,8 @@ jobs:
       - name: Commit and tag
         run: |
           git add .
-          git commit -m "chore(release): v${{ steps.version.outputs.version }}"
-          git tag "v${{ steps.version.outputs.version }}"
+          git commit -m "chore(release): Backend v${{ steps.version.outputs.version }}"
+          git tag "backend-v${{ steps.version.outputs.version }}"
           git push
           git push --tags
 
