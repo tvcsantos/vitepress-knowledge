@@ -1,3 +1,4 @@
+import { InternalServerErrorHttpError } from "@aklinker1/zeta";
 import type { AiModelDefinition, AiService } from ".";
 import env from "../../utils/env";
 import { aiModelRows, aiServiceRow, logStartupInfo } from "../../utils/log";
@@ -49,7 +50,9 @@ export function createGoogleAiService(): AiService {
         },
       );
       if (res.status !== 200) {
-        throw new Error(`Google API error: ${res.status}`);
+        throw new InternalServerErrorHttpError(
+          `Google API responded with ${res.status} ${res.statusText}`,
+        );
       }
       const json = await res.json();
 

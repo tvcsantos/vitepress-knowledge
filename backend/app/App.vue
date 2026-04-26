@@ -28,6 +28,7 @@ const threadMessages = shallowRef<ChatMessage[]>(
 const conversationId = ref<string>();
 const newMessage = ref("");
 const loading = ref(false);
+const error = ref<Error>();
 
 const router = useRouter();
 const sendMessage = async () => {
@@ -37,6 +38,7 @@ const sendMessage = async () => {
   const oldThreadMessages: ChatMessage[] = toRaw(threadMessages.value);
   try {
     loading.value = true;
+    error.value = undefined;
     const newThreadMessages: ChatMessage[] = [
       ...oldThreadMessages,
       { role: "user", content: content },
@@ -60,6 +62,7 @@ const sendMessage = async () => {
     });
     newMessage.value = "";
   } catch (err) {
+    error.value = err instanceof Error ? err : new Error(String(err));
     console.error(err);
     threadMessages.value = oldThreadMessages;
   } finally {
@@ -123,6 +126,10 @@ const appName = APP_NAME;
     </div>
 
     <div class="shrink-0 m-2 flex flex-col gap-2">
+      <div v-if="error" class="bg-(--c-warning)/20 rounded p-4 flex gap-4">
+        <i class="text-(--c-warning) i-heroicons-exclaimation-triangle" />
+        <p class="flex-1">{{ error.cause?.message ?? error }}</p>
+      </div>
       <form
         class="relative pr-0.5 bg-(--c-default-soft) ring-0 ring-(--c-brand) focus-within:ring-2 rounded transition"
         @submit.prevent="sendMessage"
