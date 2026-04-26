@@ -85,4 +85,4 @@ And... that's it! Once deployed, you should have a working chat window on your d
 Checkout the plugin and server docs for more details and advanced configuration for each:
 
 - Plugin docs: [`plugin/README.md`](https://github.com/aklinker1/vitepress-knowledge/blob/main/plugin/README.md)
-- Server docs: [`server/README.md`](https://github.com/aklinker1/vitepress-knowledge/blob/main/server/README.md)
+- Server docs: [`backend/README.md`](https://github.com/aklinker1/vitepress-knowledge/blob/main/backend/README.md)
