@@ -32,6 +32,7 @@ const app = createApp({
     fetchStatic({
       // Apply template vars to HTML files
       onFetch: async (path, file) => {
+        console.log("Transforming static file:", path, file);
         if (path.includes(".html")) {
           const html = applyAppTemplateVars(await file.text());
           return new Response(html, {
