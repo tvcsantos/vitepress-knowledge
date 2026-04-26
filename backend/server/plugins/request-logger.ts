@@ -4,9 +4,9 @@ import pc from "picocolors";
 
 export const requestLogger = new Elysia({
   name: "request-logger",
-}).onBeforeHandle(({ path, request }) => {
+}).onRequest(({ request }) => {
   consola.info(
-    `${pc.cyan("[http]")} ${getRequestColor(request.method)(request.method)} ${path}`,
+    `${pc.cyan("[http]")} ${getRequestColor(request.method)(request.method)} ${request.url}`,
   );
 });
 
