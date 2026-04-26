@@ -1,6 +1,6 @@
 {
   "name": "vitepress-knowledge-server",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Self-hosted server for hosting the Chat UI for your VitePress website",
   "type": "module",
   "scripts": {
