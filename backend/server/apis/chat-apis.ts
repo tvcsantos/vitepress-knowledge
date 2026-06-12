@@ -1,13 +1,15 @@
-import { BadRequestHttpError, createApp } from "@aklinker1/zeta";
+import { BadRequestHttpError, NotFoundHttpError, createApp } from "@aklinker1/zeta";
 import dedent from "dedent";
 import { getKnowledgeFiles } from "../utils/knowledge-files";
 import { applySystemPromptTemplateVars } from "../utils/template-vars";
-import env from "../utils/env";
-import { decorateContextPlugin } from "../plugins/decorate-context-plugin";
 import { Conversation, PostChatRequestBody } from "../../shared/types";
+import { decorateContextPlugin } from "../plugins/decorate-context-plugin";
+import { rateLimitPlugin } from "../plugins/rate-limit-plugin";
+import { siteToConfig } from "../utils/site-config";
 
 export const chatApis = createApp({ prefix: "/chat" })
   .use(decorateContextPlugin)
+  .use(rateLimitPlugin)
   .post(
     "/",
     {
@@ -18,7 +20,11 @@ export const chatApis = createApp({ prefix: "/chat" })
       body: PostChatRequestBody,
       responses: Conversation,
     },
-    async ({ body, aiService, conversationService }) => {
+    async ({ body, aiService, conversationService, db }) => {
+      const site = await db.sites.get(body.siteId);
+      if (!site) throw new NotFoundHttpError(`Site '${body.siteId}' not found`);
+      const siteConfig = siteToConfig(site);
+
       const model = aiService.models.find((m) => m.enum === body.model);
       if (!model) {
         throw new BadRequestHttpError("Model not found or not enabled");
@@ -27,10 +33,11 @@ export const chatApis = createApp({ prefix: "/chat" })
       const response = await aiService.replyToConversation(
         model,
         async () => {
-          const knowledge = await getKnowledgeFiles(env.DOCS_URL);
+          const knowledge = await getKnowledgeFiles(site.id, siteConfig.docsUrl);
           return applySystemPromptTemplateVars(
-            env.SYSTEM_PROMPT,
+            siteConfig.systemPrompt,
             knowledge.files.join("\n\n"),
+            siteConfig,
           );
         },
         { messages: body.messages },
@@ -38,6 +45,7 @@ export const chatApis = createApp({ prefix: "/chat" })
 
       return await conversationService.updateConversation({
         id: body.conversationId,
+        siteId: site.id,
         messages: [...body.messages, response],
       });
     },
@@ -53,17 +61,22 @@ export const chatApis = createApp({ prefix: "/chat" })
       `,
       body: PostChatRequestBody,
     },
-    async ({ body, aiService, conversationService, set }): Promise<any> => {
+    async ({ body, aiService, conversationService, db, set }): Promise<any> => {
+      const site = await db.sites.get(body.siteId);
+      if (!site) throw new NotFoundHttpError(`Site '${body.siteId}' not found`);
+      const siteConfig = siteToConfig(site);
+
       const model = aiService.models.find((m) => m.enum === body.model);
       if (!model) {
         throw new BadRequestHttpError("Model not found or not enabled");
       }
 
       const getSystemPrompt = async () => {
-        const knowledge = await getKnowledgeFiles(env.DOCS_URL);
+        const knowledge = await getKnowledgeFiles(site.id, siteConfig.docsUrl);
         return applySystemPromptTemplateVars(
-          env.SYSTEM_PROMPT,
+          siteConfig.systemPrompt,
           knowledge.files.join("\n\n"),
+          siteConfig,
         );
       };
 
@@ -87,6 +100,7 @@ export const chatApis = createApp({ prefix: "/chat" })
             // Save completed message to DB
             const conversation = await conversationService.updateConversation({
               id: body.conversationId,
+              siteId: site.id,
               messages: [
                 ...body.messages,
                 { role: "assistant", content: fullContent },

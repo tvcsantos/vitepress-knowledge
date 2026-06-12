@@ -5,21 +5,13 @@ metadata:
 data:
   # --- Server ---
   PORT: "5174"
-  SERVER_URL: "https://your-server-url.example.com"
+  # Global default max chat requests per (IP, siteId) per minute.
+  # Override per site via PATCH /api/sites/:id { rateLimitRpm: N }.
+  RATE_LIMIT_RPM: "20"
 
   # --- Database ---
   DATABASE_TYPE: "sqlite"
   DATABASE_SQLITE_PATH: "data/knowledge.db"
-
-  # --- App branding ---
-  APP_NAME: "My App"
-  BRAND_COLOR: "#000000"
-  BRAND_CONTENT_COLOR: "#ffffff"
-  ASSISTANT_ICON_URL: "/favicon.ico"
-
-  # --- Docs / CORS ---
-  DOCS_URL: "https://your-docs-url.example.com"
-  CORS_ORIGIN: "https://your-docs-url.example.com"
 
   # --- LiteLLM proxy (optional) ---
   LITELLM_BASE_URL: "http://litellm:4000"
@@ -38,3 +30,13 @@ data:
   # --- Anthropic model toggles ---
   CLAUDE_3_5_SONNET: "false"
   CLAUDE_3_5_HAIKU: "false"
+
+  # --- Default site seed values (used only on first boot if no sites exist) ---
+  # Remove or blank these out after the default site has been created via the API.
+  APP_NAME: "My App"
+  BRAND_COLOR: "#000000"
+  BRAND_CONTENT_COLOR: "#ffffff"
+  ASSISTANT_ICON_URL: "/favicon.ico"
+  DOCS_URL: "https://your-docs-url.example.com"
+  CORS_ORIGIN: "https://your-docs-url.example.com"
+  SERVER_URL: "https://your-server-url.example.com"

@@ -38,26 +38,39 @@ const DATABASE_TYPE = process.env.DATABASE_TYPE?.trim() || "sqlite";
 const DATABASE_SQLITE_PATH =
   process.env.DATABASE_SQLITE_PATH?.trim() || "data/knowledge.db";
 
-// Config
+// Server
 
 const PORT = Number(process.env.PORT) || 5174;
-const APP_NAME = process.env.APP_NAME?.trim() || "<APP_NAME>";
-const BRAND_COLOR = process.env.BRAND_COLOR?.trim() || "<BRAND_COLOR>";
-const BRAND_CONTENT_COLOR =
-  process.env.BRAND_CONTENT_COLOR?.trim() || "<BRAND_CONTENT_COLOR>";
-const SERVER_URL = process.env.SERVER_URL?.trim() || "<SERVER_URL>";
-const DOCS_URL = (process.env.DOCS_URL || "http://localhost:5173")
-  // Remove trailing /
+
+// Admin
+
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN?.trim();
+
+// Rate limiting
+
+/** Global default RPM per (IP, siteId). Overridable per site via rateLimitRpm DB field. */
+const RATE_LIMIT_RPM = Number(process.env.RATE_LIMIT_RPM) || 20;
+
+// Default site seed values — used only on first boot when no sites exist in the
+// DB. These allow existing single-site deployments to keep working without any
+// config changes after upgrading to multi-site support.
+
+const DEFAULT_SITE_NAME =
+  process.env.APP_NAME?.trim() || "Default";
+const DEFAULT_SITE_DOCS_URL = (process.env.DOCS_URL || "http://localhost:5173")
   .replace(/\/$/, "");
-const CORS_ORIGIN = new Set(
-  (process.env.CORS_ORIGIN || DOCS_URL).split(",").map((origin) =>
-    // Trim and remove trailing /
-    origin.trim().replace(/\/$/, ""),
-  ),
-);
-const ASSISTANT_ICON_URL =
+const DEFAULT_SITE_APP_NAME = process.env.APP_NAME?.trim() || "<APP_NAME>";
+const DEFAULT_SITE_BRAND_COLOR =
+  process.env.BRAND_COLOR?.trim() || "<BRAND_COLOR>";
+const DEFAULT_SITE_BRAND_CONTENT_COLOR =
+  process.env.BRAND_CONTENT_COLOR?.trim() || "<BRAND_CONTENT_COLOR>";
+const DEFAULT_SITE_SERVER_URL =
+  process.env.SERVER_URL?.trim() || "<SERVER_URL>";
+const DEFAULT_SITE_CORS_ORIGIN =
+  process.env.CORS_ORIGIN?.trim() || DEFAULT_SITE_DOCS_URL;
+const DEFAULT_SITE_ASSISTANT_ICON_URL =
   process.env.ASSISTANT_ICON_URL?.trim() || "/favicon.ico";
-const SYSTEM_PROMPT =
+const DEFAULT_SITE_SYSTEM_PROMPT =
   process.env.SYSTEM_PROMPT ||
   `You are a documentation assistant for "{{ APP_NAME }}" ({{ DOMAIN }}). Answer any questions based off your training knowledge below:
 
@@ -65,7 +78,7 @@ const SYSTEM_PROMPT =
 
 DO NOT ANSWER QUESTIONS THAT ARE NOT RELATED TO {{ APP_NAME }} OR ITS DOCUMENTATION. If you don't know the answer, say you don't know.
 `;
-const WELCOME_MESSAGE =
+const DEFAULT_SITE_WELCOME_MESSAGE =
   process.env.WELCOME_MESSAGE ||
   `Hi!
 
@@ -92,15 +105,18 @@ const env = {
   DATABASE_TYPE,
   DATABASE_SQLITE_PATH,
   PORT,
-  APP_NAME,
-  BRAND_COLOR,
-  BRAND_CONTENT_COLOR,
-  SERVER_URL,
-  DOCS_URL,
-  CORS_ORIGIN,
-  ASSISTANT_ICON_URL,
-  SYSTEM_PROMPT,
-  WELCOME_MESSAGE,
+  ADMIN_TOKEN,
+  RATE_LIMIT_RPM,
+  DEFAULT_SITE_NAME,
+  DEFAULT_SITE_DOCS_URL,
+  DEFAULT_SITE_APP_NAME,
+  DEFAULT_SITE_BRAND_COLOR,
+  DEFAULT_SITE_BRAND_CONTENT_COLOR,
+  DEFAULT_SITE_SERVER_URL,
+  DEFAULT_SITE_CORS_ORIGIN,
+  DEFAULT_SITE_ASSISTANT_ICON_URL,
+  DEFAULT_SITE_SYSTEM_PROMPT,
+  DEFAULT_SITE_WELCOME_MESSAGE,
 };
 export default env;
 

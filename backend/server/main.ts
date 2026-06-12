@@ -1,16 +1,19 @@
 import { fetchStatic } from "@aklinker1/aframe/server";
 import { createApp } from "@aklinker1/zeta";
 import { zodSchemaAdapter } from "@aklinker1/zeta/adapters/zod-schema-adapter";
-import { applyAppTemplateVars } from "./utils/template-vars";
 import { version } from "../shared/constants";
 import dedent from "dedent";
 import { assetApis } from "./apis/asset-apis";
 import { modelApis } from "./apis/model-apis";
 import { chatApis } from "./apis/chat-apis";
+import { siteApis } from "./apis/site-apis";
 import { corsPlugin } from "./plugins/cors-plugin";
 import { requestLoggerPlugin } from "./plugins/request-logger-plugin";
 
-const apiApp = createApp({ prefix: "/api" }).use(modelApis).use(chatApis);
+const apiApp = createApp({ prefix: "/api" })
+  .use(modelApis)
+  .use(chatApis)
+  .use(siteApis);
 
 const app = createApp({
   openApi: {
@@ -30,16 +33,13 @@ const app = createApp({
   .use(apiApp)
   .mount(
     fetchStatic({
-      // Apply template vars to HTML files
-      onFetch: async (path, file) => {
-        if (file.name?.endsWith(".html")) {
-          const html = applyAppTemplateVars(await file.text());
-          return new Response(html, {
-            headers: {
-              "content-type": file.type,
-            },
-          });
-        }
+      // HTML files are served as-is; per-site template vars are applied
+      // by the ask-ai.js endpoint via ?siteId= query param.
+      onFetch: async (_path, file) => {
+        if (!file.name?.endsWith(".html")) return;
+        return new Response(await file.text(), {
+          headers: { "content-type": file.type },
+        });
       },
     }),
   );

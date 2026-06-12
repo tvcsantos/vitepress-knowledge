@@ -6,21 +6,39 @@ type Knowledge = {
   files: string[];
 };
 
-let cache: Promise<Knowledge> | undefined;
-const getKnowledgeMutex = new Mutex();
+// Per-site cache keyed by siteId
+const cache = new Map<string, Promise<Knowledge>>();
+const mutexes = new Map<string, Mutex>();
 
 setInterval(
   () => {
-    cache = undefined;
+    cache.clear();
   },
   // Cache knowledge for up to 1 hour.
   60 * 60e3,
 );
 
-export function getKnowledgeFiles(docsUrl: string): Promise<Knowledge> {
-  if (cache) return cache;
+function getMutex(siteId: string): Mutex {
+  let mutex = mutexes.get(siteId);
+  if (!mutex) {
+    mutex = new Mutex();
+    mutexes.set(siteId, mutex);
+  }
+  return mutex;
+}
 
-  return getKnowledgeMutex.runExclusive(async (): Promise<Knowledge> => {
+export function getKnowledgeFiles(
+  siteId: string,
+  docsUrl: string,
+): Promise<Knowledge> {
+  const cached = cache.get(siteId);
+  if (cached) return cached;
+
+  return getMutex(siteId).runExclusive(async (): Promise<Knowledge> => {
+    // Double-check after acquiring the lock
+    const cachedAfterLock = cache.get(siteId);
+    if (cachedAfterLock) return cachedAfterLock;
+
     const index: string[] = await fetch(`${docsUrl}/knowledge/index.json`).then(
       (res) => res.json(),
     );
@@ -34,7 +52,13 @@ export function getKnowledgeFiles(docsUrl: string): Promise<Knowledge> {
       version: "",
       files,
     };
-    cache = Promise.resolve(knowledge);
+    const resolved = Promise.resolve(knowledge);
+    cache.set(siteId, resolved);
     return knowledge;
   });
+}
+
+/** Evict the cached knowledge for a specific site (e.g. after docsUrl update). */
+export function invalidateKnowledgeCache(siteId: string): void {
+  cache.delete(siteId);
 }

@@ -13,6 +13,26 @@ useParentTheme();
 
 const SELECTED_MODEL_STORAGE_KEY = "vpk:selected-model";
 
+// SITE_ID is injected by the server into index.html at serve time.
+// In dev, if the backend wasn't ready when Vite first transformed the HTML,
+// the value may be "unknown" — resolve it lazily from the API in that case.
+let _resolvedSiteId: string | undefined;
+async function getResolvedSiteId(): Promise<string> {
+  if (_resolvedSiteId) return _resolvedSiteId;
+  if (SITE_ID && SITE_ID !== "unknown") {
+    _resolvedSiteId = SITE_ID;
+    return _resolvedSiteId;
+  }
+  try {
+    const res = await fetch("/api/sites/default");
+    if (res.ok) {
+      const site = await res.json();
+      _resolvedSiteId = site?.id;
+    }
+  } catch {}
+  return _resolvedSiteId ?? SITE_ID;
+}
+
 const close = () => {
   window.postMessage("vitepress-knowledge:close-modal", "*");
   window.parent.postMessage("vitepress-knowledge:close-modal", "*");
@@ -78,6 +98,7 @@ const sendMessage = async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        siteId: await getResolvedSiteId(),
         conversationId: conversationId.value,
         messages: newThreadMessages,
         model: selectedModel.value,
