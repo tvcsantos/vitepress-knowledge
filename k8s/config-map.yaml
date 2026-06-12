@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vitepress-knowledge-server
+data:
+  # --- Server ---
+  PORT: "5174"
+  SERVER_URL: "https://your-server-url.example.com"
+
+  # --- Database ---
+  DATABASE_TYPE: "sqlite"
+  DATABASE_SQLITE_PATH: "data/knowledge.db"
+
+  # --- App branding ---
+  APP_NAME: "My App"
+  BRAND_COLOR: "#000000"
+  BRAND_CONTENT_COLOR: "#ffffff"
+  ASSISTANT_ICON_URL: "/favicon.ico"
+
+  # --- Docs / CORS ---
+  DOCS_URL: "https://your-docs-url.example.com"
+  CORS_ORIGIN: "https://your-docs-url.example.com"
+
+  # --- LiteLLM proxy (optional) ---
+  LITELLM_BASE_URL: "http://litellm:4000"
+  # Comma-separated model aliases: alias[:Display Name]
+  LITELLM_MODELS: ""
+
+  # --- Gemini model toggles ---
+  GEMINI_FLASH_LATEST: "true"
+  GEMINI_PRO_LATEST: "false"
+  GEMINI_2_0_FLASH: "false"
+  GEMINI_2_5_FLASH: "false"
+  GEMINI_3_FLASH_PREVIEW: "false"
+  GEMINI_3_PRO_PREVIEW: "false"
+  GEMINI_3_1_PRO_PREVIEW: "false"
+
+  # --- Anthropic model toggles ---
+  CLAUDE_3_5_SONNET: "false"
+  CLAUDE_3_5_HAIKU: "false"

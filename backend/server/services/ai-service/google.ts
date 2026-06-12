@@ -105,5 +105,70 @@ export function createGoogleAiService(): AiService {
         content: json.candidates[0].content.parts[0].text,
       };
     },
+
+    streamReply: async function* (model, getSystemPrompt, conversation) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model.enum}:streamGenerateContent?alt=sse`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": env.GOOGLE_API_KEY!,
+          },
+          body: JSON.stringify({
+            generationConfig: {
+              temperature: 1,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 8192,
+              responseMimeType: "text/plain",
+              thinkingConfig: {
+                thinkingLevel: "minimal",
+              },
+            },
+            systemInstruction: {
+              role: "user",
+              parts: [{ text: await getSystemPrompt() }],
+            },
+            contents: conversation.messages.map((message) => ({
+              role: message.role === "user" ? "user" : "model",
+              parts: [{ text: message.content }],
+            })),
+          }),
+        },
+      );
+      if (res.status !== 200) {
+        throw new InternalServerErrorHttpError(
+          `Google API responded with ${res.status} ${res.statusText}`,
+        );
+      }
+      yield* parseSseStream(res, (data) => {
+        const json = JSON.parse(data);
+        return json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+      });
+    },
   };
+}
+
+async function* parseSseStream(
+  res: Response,
+  extractToken: (data: string) => string,
+): AsyncIterable<string> {
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("data:")) continue;
+      const data = line.slice(5).trim();
+      if (data === "[DONE]") return;
+      const token = extractToken(data);
+      if (token) yield token;
+    }
+  }
 }

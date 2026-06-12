@@ -1,0 +1,54 @@
+# Self-hosted LiteLLM proxy (https://docs.litellm.ai/docs/simple_proxy) for use
+# with the vitepress-knowledge backend. OpenAI-compatible proxy supporting 100+
+# providers — including Azure OpenAI with arbitrary `api_base` URLs.
+#
+# How to wire this to the vitepress-knowledge backend:
+#   1. Edit litellm.config.yaml to declare the models you want to expose.
+#      Each `model_name` becomes an alias your clients (and the backend) use.
+#   2. Set the upstream provider keys below (OPENAI_API_KEY, AZURE_API_KEY,
+#      ANTHROPIC_API_KEY, ...) so the config's `os.environ/...` refs resolve.
+#   3. Set LITELLM_MASTER_KEY below — this is the proxy API key the backend
+#      sends as `Authorization: Bearer <key>`. Must start with `sk-`.
+#   4. Start the stack:  docker compose -f compose.litellm.yml up -d
+#   5. In your vitepress-knowledge-server env, set:
+#         LITELLM_API_KEY=<the value of LITELLM_MASTER_KEY>
+#         LITELLM_BASE_URL=http://localhost:4000
+#         LITELLM_MODELS=gpt-4o-mini:GPT 4o Mini,azure-gpt-4o-mini:Azure GPT 4o Mini
+#      If you run the vitepress-knowledge-server in another container on the
+#      same Docker network, use http://litellm:4000 instead.
+#
+# Azure OpenAI with a custom URL: in litellm.config.yaml, set the model's
+# `litellm_params.api_base` to your Azure endpoint (any URL — LiteLLM does NOT
+# hardcode the *.openai.azure.com domain like LLM Gateway does).
+#
+# Production notes:
+#   - Pin the image tag to a specific release (see
+#     https://github.com/BerriAI/litellm/releases) instead of `main-stable`.
+#   - Generate a strong master key: `echo "sk-$(openssl rand -hex 24)"`.
+#   - Switch to `ghcr.io/berriai/litellm-database:main-stable` + Postgres if
+#     you want virtual keys, cost tracking, or the admin UI.
+
+name: litellm
+
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: litellm
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm.config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      # Master key — the backend sends this as `Authorization: Bearer <key>`.
+      # MUST start with `sk-`. CHANGE ME for production.
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-change-me-master-key}
+
+      # Upstream provider keys referenced by `os.environ/...` in
+      # litellm.config.yaml. Fill in the ones you actually use.
+      #OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      #ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AZURE_API_KEY: ${AZURE_API_KEY:-}
+      #GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      AZURE_API_BASE: ${AZURE_API_BASE:-}

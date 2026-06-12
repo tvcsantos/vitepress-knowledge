@@ -2,11 +2,13 @@ import consola from "consola";
 import type { AiService } from ".";
 import { createAnthropicAiService } from "./anthropic";
 import { createGoogleAiService } from "./google";
+import { createLiteLlmAiService } from "./litellm";
 
 export function createGenericAiService(): AiService {
   const allServices = [
     createGoogleAiService(),
     createAnthropicAiService(),
+    createLiteLlmAiService(),
     // ...
   ];
 
@@ -41,6 +43,19 @@ export function createGenericAiService(): AiService {
         systemPrompt,
         conversation,
       );
+    },
+
+    streamReply: async function* (model, systemPrompt, conversation) {
+      const service = enabledServices.find((service) =>
+        service.models.includes(model),
+      );
+      if (!service) {
+        throw new Error(`Model "${model.enum}" not found or is not enabled`, {
+          cause: model,
+        });
+      }
+
+      yield* service.streamReply(model, systemPrompt, conversation);
     },
   };
   return service;

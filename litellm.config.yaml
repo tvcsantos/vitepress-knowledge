@@ -1,0 +1,38 @@
+# LiteLLM proxy model config. Loaded by compose.litellm.yml.
+# Docs: https://docs.litellm.ai/docs/proxy/configs
+#
+# Each `model_name` becomes the alias clients send as the `model` field.
+# Reference these aliases (comma-separated) in LITELLM_MODELS in the
+# vitepress-knowledge backend env.
+#
+# `os.environ/<NAME>` reads from the proxy container's environment — set the
+# corresponding vars in compose.litellm.yml.
+
+model_list:
+  - model_name: gpt-5.5
+    litellm_params:
+      model: azure/gpt-5.5
+      api_base: os.environ/AZURE_API_BASE
+      api_key: os.environ/AZURE_API_KEY
+      api_version: "2024-10-21"  # optional
+  - model_name: gpt-5.1
+    litellm_params:
+      model: azure/gpt-5.1
+      api_base: os.environ/AZURE_API_BASE
+      api_key: os.environ/AZURE_API_KEY
+      api_version: "2024-10-21"  # optional
+  - model_name: gpt-5-nano
+    litellm_params:
+      model: azure/gpt-5-nano
+      api_base: os.environ/AZURE_API_BASE
+      api_key: os.environ/AZURE_API_KEY
+      api_version: "2024-10-21"  # optional
+  - model_name: gpt-5-mini
+    litellm_params:
+      model: azure/gpt-5-mini
+      api_base: os.environ/AZURE_API_BASE
+      api_key: os.environ/AZURE_API_KEY
+      api_version: "2024-10-21"  # optional
+
+litellm_settings:
+  drop_params: true

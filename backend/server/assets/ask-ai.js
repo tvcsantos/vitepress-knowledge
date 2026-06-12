@@ -30,7 +30,7 @@ styles.innerHTML = `
   right: 2rem;
   bottom: 2rem;
   padding: 1rem 1.5rem 1rem 1rem;
-  z-index: 1;
+  z-index: 30;
 }
 @media (min-width: 768px) {
   .ask-ai-btn {

@@ -4,6 +4,21 @@ import { envRow, logStartupInfo } from "./log";
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY?.trim();
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY?.trim();
+const LITELLM_API_KEY = process.env.LITELLM_API_KEY?.trim();
+const LITELLM_BASE_URL =
+  process.env.LITELLM_BASE_URL?.trim() || "http://localhost:4000";
+const LITELLM_MODELS = process.env.LITELLM_MODELS?.trim() || "";
+const LITELLM_MODELS_PARSED = LITELLM_MODELS.split(",")
+  .map((entry) => entry.trim())
+  .filter((entry) => entry.length > 0)
+  .map((entry) => {
+    const sep = entry.indexOf(":");
+    if (sep === -1) return { enum: entry, name: entry };
+    return {
+      enum: entry.slice(0, sep).trim(),
+      name: entry.slice(sep + 1).trim() || entry.slice(0, sep).trim(),
+    };
+  });
 
 // Models
 
@@ -46,16 +61,25 @@ const SYSTEM_PROMPT =
   process.env.SYSTEM_PROMPT ||
   `You are a documentation assistant for "{{ APP_NAME }}" ({{ DOMAIN }}). Answer any questions based off your training knowledge below:
 
-{{ KNOWLEDGE }}`;
+{{ KNOWLEDGE }}
+
+DO NOT ANSWER QUESTIONS THAT ARE NOT RELATED TO {{ APP_NAME }} OR ITS DOCUMENTATION. If you don't know the answer, say you don't know.
+`;
 const WELCOME_MESSAGE =
   process.env.WELCOME_MESSAGE ||
-  `<p>Hi!</p>
-<p>I'm an AI assistant trained on {{ APP_NAME }}'s documentation.</p>
-<p>Ask me anything about <code>{{ APP_NAME }}</code>.</p>`;
+  `Hi!
+
+I'm an AI assistant trained on {{ APP_NAME }}'s documentation.
+
+Ask me anything about **{{ APP_NAME }}**.`;
 
 const env = {
   GOOGLE_API_KEY,
   ANTHROPIC_API_KEY,
+  LITELLM_API_KEY,
+  LITELLM_BASE_URL,
+  LITELLM_MODELS,
+  LITELLM_MODELS_PARSED,
   GEMINI_2_0_FLASH,
   GEMINI_2_5_FLASH,
   GEMINI_3_FLASH_PREVIEW,

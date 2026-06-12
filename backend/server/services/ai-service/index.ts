@@ -1,5 +1,4 @@
 import type { ChatMessage } from "../../../shared/types";
-import type env from "../../utils/env";
 
 export interface AiService {
   enabled: boolean;
@@ -12,11 +11,18 @@ export interface AiService {
     getSystemPrompt: () => Promise<string>,
     conversation: { messages: ChatMessage[] },
   ): Promise<ChatMessage>;
+
+  /** Stream the AI reply token by token. */
+  streamReply(
+    model: AiModelDefinition,
+    getSystemPrompt: () => Promise<string>,
+    conversation: { messages: ChatMessage[] },
+  ): AsyncIterable<string>;
 }
 
 export interface AiModelDefinition {
   name: string;
-  env: keyof typeof env;
+  env: string;
   enum: string;
   enabled: boolean;
 }

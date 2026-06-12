@@ -58,5 +58,62 @@ export function createAnthropicAiService(): AiService {
         content: json.content[0].text,
       };
     },
+
+    streamReply: async function* (model, getSystemPrompt, conversation) {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": env.ANTHROPIC_API_KEY!,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: model.enum,
+          max_tokens: 1024,
+          stream: true,
+          system: [
+            {
+              type: "text",
+              text: await getSystemPrompt(),
+              cache_control: { type: "ephemeral" },
+            },
+          ],
+          messages: conversation.messages,
+        }),
+      });
+      if (res.status !== 200) {
+        throw new Error(`Anthropic API error: ${res.status}`);
+      }
+      yield* parseSseStream(res, (data) => {
+        const json = JSON.parse(data);
+        if (json.type === "content_block_delta" && json.delta?.type === "text_delta") {
+          return json.delta.text ?? "";
+        }
+        return "";
+      });
+    },
   };
+}
+
+async function* parseSseStream(
+  res: Response,
+  extractToken: (data: string) => string,
+): AsyncIterable<string> {
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("data:")) continue;
+      const data = line.slice(5).trim();
+      if (data === "[DONE]") return;
+      const token = extractToken(data);
+      if (token) yield token;
+    }
+  }
 }

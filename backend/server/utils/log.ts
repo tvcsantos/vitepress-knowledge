@@ -90,5 +90,11 @@ function toString(value: any): string {
   if (value instanceof Set) {
     return `Set(${Array.from(value).join()})`;
   }
+  if (Array.isArray(value)) {
+    return `[${value.map(toString).join(", ")}]`;
+  }
+  if (value && typeof value === "object") {
+    return JSON.stringify(value);
+  }
   return String(value);
 }

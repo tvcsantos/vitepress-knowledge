@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vitepress-knowledge-server
+  labels:
+    app: vitepress-knowledge-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vitepress-knowledge-server
+  template:
+    metadata:
+      labels:
+        app: vitepress-knowledge-server
+    spec:
+      containers:
+        - name: server
+          image: aklinker1/vitepress-knowledge-server:latest
+          ports:
+            - name: http
+              containerPort: 5174
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: vitepress-knowledge-server
+            - configMapRef:
+                name: vitepress-knowledge-server
+          livenessProbe:
+            httpGet:
+              path: /api/models
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/models
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /usr/src/app/data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: vitepress-knowledge-server
