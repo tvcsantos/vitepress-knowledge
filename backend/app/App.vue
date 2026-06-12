@@ -1,13 +1,12 @@
 <script lang="ts" setup>
 import { WELCOME_CHAT_MESSAGE } from "./utils/constants";
 import MessageList from "./components/MessageList.vue";
-import { useClipboard } from "@vueuse/core";
 import { computed, onMounted, ref, shallowRef, toRaw, watch } from "vue";
 import { apiClient } from "./utils/api-client";
 import type { AiModel, ChatMessage } from "../shared/types";
 import { isIframe } from "./utils/is-iframe";
-import { useRouter, useRoute } from "vue-router";
 import useParentTheme from "./composables/useParentTheme";
+import useMdToHtml from "./composables/useMdToHtml";
 
 useParentTheme();
 
@@ -38,16 +37,16 @@ const close = () => {
   window.parent.postMessage("vitepress-knowledge:close-modal", "*");
 };
 
-const { copy: copyUrl, copied: isUrlCopied } = useClipboard({
-  source: () => new URL(location.search, DOCS_URL).toString(),
-});
+const SESSION_MESSAGES_KEY = "vpk:messages";
 
-const route = useRoute();
 const threadMessages = shallowRef<ChatMessage[]>(
-  route.query.q ? JSON.parse(route.query.q as string) : [],
+  JSON.parse(sessionStorage.getItem(SESSION_MESSAGES_KEY) ?? "[]"),
 );
 
-const conversationId = ref<string>();
+watch(threadMessages, (msgs) => {
+  sessionStorage.setItem(SESSION_MESSAGES_KEY, JSON.stringify(msgs));
+});
+
 const newMessage = ref("");
 const loading = ref(false);
 const error = ref<Error>();
@@ -78,7 +77,6 @@ watch(selectedModel, (value) => {
   if (value) localStorage.setItem(SELECTED_MODEL_STORAGE_KEY, value);
 });
 
-const router = useRouter();
 const sendMessage = async () => {
   const content = newMessage.value.trim();
   if (!content || loading.value || !selectedModel.value) return;
@@ -99,7 +97,6 @@ const sendMessage = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         siteId: await getResolvedSiteId(),
-        conversationId: conversationId.value,
         messages: newThreadMessages,
         model: selectedModel.value,
       }),
@@ -127,17 +124,7 @@ const sendMessage = async () => {
           threadMessages.value = [...newThreadMessages, { ...assistantMessage }];
 
         } else if (data.done) {
-          threadMessages.value = data.conversation.messages;
-          conversationId.value = data.conversation.id;
-          router.replace({
-            query: {
-              q: JSON.stringify(
-                data.conversation.messages.map(
-                  ({ id: _, ...message }: ChatMessage) => message,
-                ),
-              ),
-            },
-          });
+          threadMessages.value = data.messages;
         } else if (data.error) {
           throw new Error(data.error);
         }
@@ -167,6 +154,18 @@ const messages = computed(() => {
 const docsUrl = DOCS_URL;
 const docsDomain = new URL(DOCS_URL).host;
 const appName = APP_NAME;
+
+const privacyPolicyMd = ref("");
+const showPrivacyPolicy = ref(false);
+const privacyPolicyHtml = useMdToHtml(privacyPolicyMd);
+
+async function openPrivacyPolicy() {
+  if (!privacyPolicyMd.value) {
+    const res = await fetch("/privacy-policy");
+    if (res.ok) privacyPolicyMd.value = await res.text();
+  }
+  showPrivacyPolicy.value = true;
+}
 </script>
 
 <template>
@@ -177,9 +176,6 @@ const appName = APP_NAME;
       <i class="i-heroicons-bolt-solid size-6" />
       <div class="flex gap-1 items-center">
         <h1 class="shrink-0 font-bold text-lg">Ask {{ appName }} AI</h1>
-        <p class="shrink-0 ml-1 badge badge-sm badge-warning uppercase">
-          Alpha
-        </p>
       </div>
       <div class="flex-1" />
       <a
@@ -193,11 +189,16 @@ const appName = APP_NAME;
           class="i-heroicons-arrow-top-right-on-square-16-solid size-4 -my-2"
         />
       </a>
-      <button class="btn btn-ghost" @click="() => copyUrl()">
-        <i class="i-heroicons-share-solid size-5" />
-        <span v-if="isUrlCopied">Copied!</span>
-        <span v-else>Share</span>
+
+      <button
+        class="btn btn-ghost btn-circle"
+        title="New conversation"
+        :disabled="threadMessages.length === 0"
+        @click="threadMessages = []"
+      >
+        <i class="i-heroicons-pencil-square-solid size-5" />
       </button>
+
       <button
         v-if="isIframe"
         class="btn btn-ghost btn-circle"
@@ -209,20 +210,25 @@ const appName = APP_NAME;
     </div>
 
     <div class="flex-1 relative">
-      <div ref="scrollContainer" class="absolute inset-0 overflow-y-auto p-4">
+      <div
+        v-if="showPrivacyPolicy"
+        class="absolute inset-0 overflow-y-auto p-4 prose prose-sm prose-invert max-w-none"
+        v-html="privacyPolicyHtml"
+      />
+      <div v-else ref="scrollContainer" class="absolute inset-0 overflow-y-auto p-4">
         <MessageList :messages show-top-links :loading />
       </div>
     </div>
 
     <div class="shrink-0 m-2 flex flex-col gap-2">
-      <div v-if="error" class="bg-(--c-warning)/20 rounded p-4 flex gap-4">
+      <div v-if="error && !showPrivacyPolicy" class="bg-(--c-warning)/20 rounded p-4 flex gap-4">
         <i class="text-(--c-warning) i-heroicons-exclaimation-triangle" />
         <p class="flex-1">
           {{ (error.cause as Error | undefined)?.message ?? error?.message }}
         </p>
       </div>
       <div
-        v-if="hasNoModels"
+        v-if="hasNoModels && !showPrivacyPolicy"
         class="bg-(--c-warning)/20 rounded p-4 flex gap-4"
       >
         <i class="text-(--c-warning) i-heroicons-exclaimation-triangle" />
@@ -232,6 +238,7 @@ const appName = APP_NAME;
         </p>
       </div>
       <form
+        v-if="!showPrivacyPolicy"
         class="relative pr-0.5 bg-(--c-default-soft) ring-0 ring-(--c-brand) focus-within:ring-2 rounded transition"
         @submit.prevent="sendMessage"
       >
@@ -270,22 +277,27 @@ const appName = APP_NAME;
       </form>
 
       <div class="text-sm flex gap-1">
-        <p class="opacity-70">Powered by</p>
-        <a
-          class="link"
-          href="https://github.com/aklinker1/vitepress-knowledge"
-          target="_blank"
-        >
-          <i class="i-heroicons-bolt-16-solid size-4 -my-2" />
-          <span>vitepress-knowledge</span>
-        </a>
-        <div class="flex-1" />
-        <a class="link" href="/privacy-policy" target="_blank">
-          <span>Privacy Policy</span>
-          <i
-            class="i-heroicons-arrow-top-right-on-square-16-solid size-4 -my-2"
-          />
-        </a>
+        <template v-if="showPrivacyPolicy">
+          <button class="link" @click="showPrivacyPolicy = false">
+            <i class="i-heroicons-arrow-left-16-solid size-4 -my-2" />
+            <span>Back to chat</span>
+          </button>
+        </template>
+        <template v-else>
+          <p class="opacity-70">Powered by</p>
+          <a
+            class="link"
+            href="https://github.com/aklinker1/vitepress-knowledge"
+            target="_blank"
+          >
+            <i class="i-heroicons-bolt-16-solid size-4 -my-2" />
+            <span>vitepress-knowledge</span>
+          </a>
+          <div class="flex-1" />
+          <button class="link" @click="openPrivacyPolicy">
+            <span>Privacy Policy</span>
+          </button>
+        </template>
       </div>
     </div>
   </div>

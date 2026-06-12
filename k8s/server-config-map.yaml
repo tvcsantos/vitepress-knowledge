@@ -13,8 +13,9 @@ data:
   DATABASE_TYPE: "sqlite"
   DATABASE_SQLITE_PATH: "data/knowledge.db"
 
-  # --- LiteLLM proxy (optional) ---
-  LITELLM_BASE_URL: "http://litellm:4000"
+  # --- LiteLLM sidecar ---
+  # Sidecar shares the pod network so localhost resolves directly.
+  LITELLM_BASE_URL: "http://localhost:4000"
   # Comma-separated model aliases: alias[:Display Name]
   LITELLM_MODELS: ""
 

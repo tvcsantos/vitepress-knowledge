@@ -44,18 +44,9 @@ export const ChatMessage = z
   .meta({ ref: "ChatMessage" });
 export type ChatMessage = z.infer<typeof ChatMessage>;
 
-export const Conversation = z
-  .object({
-    id: z.string(),
-    messages: z.array(ChatMessage),
-  })
-  .meta({ ref: "Conversation" });
-export type Conversation = z.infer<typeof Conversation>;
-
 export const PostChatRequestBody = z.object({
   siteId: z.string().describe("ID of the site this chat belongs to."),
   model: z.string(),
-  conversationId: z.string().optional(),
   messages: z.array(ChatMessage),
 });
 export type PostChatRequestBody = z.infer<typeof PostChatRequestBody>;

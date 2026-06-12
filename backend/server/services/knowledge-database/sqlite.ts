@@ -1,20 +1,21 @@
 import type { KnowledgeDatabase } from ".";
+import type { Site } from "../../../shared/types";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import * as schema from "../../db/sqlite/schema";
-import { and, count, eq, gt, lt, min, sql } from "drizzle-orm";
+import { and, count, eq, gt, lt, min } from "drizzle-orm";
 import env from "../../utils/env";
 import { logStartupInfo } from "../../utils/log";
 import { Cron } from "croner";
 
-const { messages, conversations, sites, rateLimitEntries } = schema;
+const { sites, rateLimitEntries } = schema;
 
 type DbSite = typeof sites.$inferSelect;
 
 /** Map a Drizzle row (Date createdAt) to the shared Site type (string createdAt). */
-function siteFromDb(row: DbSite): import("../../../shared/types").Site {
+function siteFromDb(row: DbSite): Site {
   return { ...row, createdAt: row.createdAt.toISOString() };
 }
 
@@ -49,19 +50,6 @@ export async function createSqliteKnowledgeDatabase(): Promise<KnowledgeDatabase
 
   // Daily vacuum to minimize the database
   new Cron("@daily", () => db.run("VACUUM"));
-  // Delete old conversations (30 days)
-  new Cron(
-    "@daily",
-    async () =>
-      await db
-        .delete(conversations)
-        .where(
-          lt(
-            sql`date(${conversations.createdAt})`,
-            sql`date('now', '-30 days')`,
-          ),
-        ),
-  );
   // Delete stale rate limit entries (older than 60 s) to keep the table lean
   new Cron("@daily", async () => {
     const windowStart = new Date(Date.now() - 60_000);
@@ -98,47 +86,6 @@ export async function createSqliteKnowledgeDatabase(): Promise<KnowledgeDatabase
       },
       delete: async (id) => {
         await db.delete(sites).where(eq(sites.id, id));
-      },
-    },
-
-    conversations: {
-      get: (id: string) =>
-        db.query.conversations.findFirst({
-          where: eq(conversations.id, id),
-          with: { messages: true },
-        }),
-      insert: async (conversation) => {
-        const [result] = await db
-          .insert(conversations)
-          .values(conversation)
-          .returning();
-        return result;
-      },
-      getOrInsert: async (conversation) => {
-        if (conversation.id != null) {
-          const existing = await database.conversations.get(conversation.id);
-          if (existing) return existing;
-        }
-        return await database.conversations.insert(conversation);
-      },
-    },
-
-    messages: {
-      get: (id: string) =>
-        db.query.messages.findFirst({ where: eq(messages.id, id) }),
-      insert: async (conversationId, message) => {
-        const [result] = await db
-          .insert(messages)
-          .values({ conversationId, ...message })
-          .returning();
-        return result;
-      },
-      getOrInsert: async (conversationId, message) => {
-        if (message.id != null) {
-          const existing = await database.messages.get(message.id);
-          if (existing) return existing;
-        }
-        return await database.messages.insert(conversationId, message);
       },
     },
 

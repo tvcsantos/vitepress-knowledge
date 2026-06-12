@@ -1,26 +1,18 @@
 import { defineConfig } from "@aklinker1/aframe";
 import vue from "@vitejs/plugin-vue";
 import tailwindcss from "@tailwindcss/vite";
-import { loadEnv, Plugin } from "vite";
+import { Plugin } from "vite";
+import { applyAppTemplateVars } from "./server/utils/template-vars";
+import env from "./server/utils/env";
 
 const SERVER_PORT = Number(process.env.PORT) || 5174;
 
 /** Apply template variables just like production server, using the default site config from env. */
 function applyTemplateVars(): Plugin {
-  let mode = "development";
   return {
     apply: "serve",
     name: "backend:apply-template-vars",
-    configResolved(config) {
-      mode = config.mode;
-    },
     async transformIndexHtml(html) {
-      loadEnv(mode, process.cwd(), "");
-      const { applyAppTemplateVars } = await import(
-        "./server/utils/template-vars"
-      );
-      const { default: env } = await import("./server/utils/env");
-
       // Resolve the real default site ID from the running dev server so that
       // SITE_ID in the HTML template matches the actual DB record.
       let siteId = "unknown";
@@ -58,6 +50,10 @@ export default defineConfig({
     server: {
       proxy: {
         "/ask-ai.js": {
+          target: `http://localhost:3001`,
+          changeOrigin: true,
+        },
+        "/privacy-policy": {
           target: `http://localhost:3001`,
           changeOrigin: true,
         },

@@ -96,8 +96,8 @@ const lightingSvg = () => {
   return element;
 };
 
-const openChat = (initialMessages) => {
-  document.body.append(chatWindow(initialMessages));
+const openChat = () => {
+  document.body.append(chatWindow());
   document.body.style.overflow = "hidden";
 };
 
@@ -113,7 +113,7 @@ const askAiButton = () => {
   return button;
 };
 
-function chatWindow(initialMessages) {
+function chatWindow() {
   const overlay = document.createElement("div");
   overlay.classList.add("chat-window-overlay");
 
@@ -137,10 +137,7 @@ function chatWindow(initialMessages) {
 
   const chatWindow = document.createElement("iframe");
   chatWindow.classList.add("chat-window");
-  const url = new URL("{{ SERVER_URL }}");
-  if (initialMessages)
-    url.searchParams.set("q", JSON.stringify(initialMessages));
-  chatWindow.src = url.href;
+  chatWindow.src = "{{ SERVER_URL }}";
 
   function notifyIframeOfTheme() {
     const htmlElement = document.documentElement;
@@ -159,15 +156,3 @@ function chatWindow(initialMessages) {
 }
 
 document.body.append(askAiButton());
-
-try {
-  const initialQuestion = new URLSearchParams(window.location.search).get("q");
-  if (initialQuestion) {
-    const initialMessages = JSON.parse(initialQuestion);
-    if (initialMessages.length) {
-      openChat(initialMessages);
-    }
-  }
-} catch (err) {
-  console.error(err);
-}
