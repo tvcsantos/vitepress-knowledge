@@ -1,5 +1,5 @@
 import { fetchStatic } from "@aklinker1/aframe/server";
-import { createApp } from "@aklinker1/zeta";
+import { createApp, NoResponse } from "@aklinker1/zeta";
 import { zodSchemaAdapter } from "@aklinker1/zeta/adapters/zod-schema-adapter";
 import { version } from "../shared/constants";
 import dedent from "dedent";
@@ -13,7 +13,8 @@ import { requestLoggerPlugin } from "./plugins/request-logger-plugin";
 const apiApp = createApp({ prefix: "/api" })
   .use(modelApis)
   .use(chatApis)
-  .use(siteApis);
+  .use(siteApis)
+  .get("/health", { operationId: "health", responses: NoResponse }, () => {});
 
 const app = createApp({
   openApi: {
