@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: litellm-config
+  name: vitepress-knowledge-litellm
 data:
   # LiteLLM proxy model config — mirrors litellm.config.yaml.
   # `os.environ/<NAME>` refs are resolved from the pod's environment

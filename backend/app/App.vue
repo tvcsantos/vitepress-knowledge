@@ -18,7 +18,7 @@ const SELECTED_MODEL_STORAGE_KEY = "vpk:selected-model";
 let _resolvedSiteId: string | undefined;
 async function getResolvedSiteId(): Promise<string> {
   if (_resolvedSiteId) return _resolvedSiteId;
-  if (SITE_ID && SITE_ID !== "unknown") {
+  if (SITE_ID && SITE_ID !== "unknown" && !SITE_ID.startsWith("{{")) {
     _resolvedSiteId = SITE_ID;
     return _resolvedSiteId;
   }

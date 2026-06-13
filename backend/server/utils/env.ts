@@ -51,41 +51,6 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN?.trim();
 /** Global default RPM per (IP, siteId). Overridable per site via rateLimitRpm DB field. */
 const RATE_LIMIT_RPM = Number(process.env.RATE_LIMIT_RPM) || 20;
 
-// Default site seed values — used only on first boot when no sites exist in the
-// DB. These allow existing single-site deployments to keep working without any
-// config changes after upgrading to multi-site support.
-
-const DEFAULT_SITE_NAME =
-  process.env.APP_NAME?.trim() || "Default";
-const DEFAULT_SITE_DOCS_URL = (process.env.DOCS_URL || "http://localhost:5173")
-  .replace(/\/$/, "");
-const DEFAULT_SITE_APP_NAME = process.env.APP_NAME?.trim() || "<APP_NAME>";
-const DEFAULT_SITE_BRAND_COLOR =
-  process.env.BRAND_COLOR?.trim() || "<BRAND_COLOR>";
-const DEFAULT_SITE_BRAND_CONTENT_COLOR =
-  process.env.BRAND_CONTENT_COLOR?.trim() || "<BRAND_CONTENT_COLOR>";
-const DEFAULT_SITE_SERVER_URL =
-  process.env.SERVER_URL?.trim() || "<SERVER_URL>";
-const DEFAULT_SITE_CORS_ORIGIN =
-  process.env.CORS_ORIGIN?.trim() || DEFAULT_SITE_DOCS_URL;
-const DEFAULT_SITE_ASSISTANT_ICON_URL =
-  process.env.ASSISTANT_ICON_URL?.trim() || "/favicon.ico";
-const DEFAULT_SITE_SYSTEM_PROMPT =
-  process.env.SYSTEM_PROMPT ||
-  `You are a documentation assistant for "{{ APP_NAME }}" ({{ DOMAIN }}). Answer any questions based off your training knowledge below:
-
-{{ KNOWLEDGE }}
-
-DO NOT ANSWER QUESTIONS THAT ARE NOT RELATED TO {{ APP_NAME }} OR ITS DOCUMENTATION. If you don't know the answer, say you don't know.
-`;
-const DEFAULT_SITE_WELCOME_MESSAGE =
-  process.env.WELCOME_MESSAGE ||
-  `Hi!
-
-I'm an AI assistant trained on {{ APP_NAME }}'s documentation.
-
-Ask me anything about **{{ APP_NAME }}**.`;
-
 const env = {
   GOOGLE_API_KEY,
   ANTHROPIC_API_KEY,
@@ -107,16 +72,6 @@ const env = {
   PORT,
   ADMIN_TOKEN,
   RATE_LIMIT_RPM,
-  DEFAULT_SITE_NAME,
-  DEFAULT_SITE_DOCS_URL,
-  DEFAULT_SITE_APP_NAME,
-  DEFAULT_SITE_BRAND_COLOR,
-  DEFAULT_SITE_BRAND_CONTENT_COLOR,
-  DEFAULT_SITE_SERVER_URL,
-  DEFAULT_SITE_CORS_ORIGIN,
-  DEFAULT_SITE_ASSISTANT_ICON_URL,
-  DEFAULT_SITE_SYSTEM_PROMPT,
-  DEFAULT_SITE_WELCOME_MESSAGE,
 };
 export default env;
 

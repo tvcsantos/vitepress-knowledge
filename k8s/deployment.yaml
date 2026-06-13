@@ -58,7 +58,7 @@ spec:
               protocol: TCP
           envFrom:
             - secretRef:
-                name: vitepress-knowledge-server
+                name: vitepress-knowledge-litellm
           livenessProbe:
             httpGet:
               path: /health/liveliness
@@ -90,4 +90,4 @@ spec:
             claimName: vitepress-knowledge-server
         - name: litellm-config
           configMap:
-            name: litellm-config
+            name: vitepress-knowledge-litellm

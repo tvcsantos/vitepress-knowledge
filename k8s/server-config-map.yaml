@@ -31,13 +31,3 @@ data:
   # --- Anthropic model toggles ---
   CLAUDE_3_5_SONNET: "false"
   CLAUDE_3_5_HAIKU: "false"
-
-  # --- Default site seed values (used only on first boot if no sites exist) ---
-  # Remove or blank these out after the default site has been created via the API.
-  APP_NAME: "My App"
-  BRAND_COLOR: "#000000"
-  BRAND_CONTENT_COLOR: "#ffffff"
-  ASSISTANT_ICON_URL: "/favicon.ico"
-  DOCS_URL: "https://your-docs-url.example.com"
-  CORS_ORIGIN: "https://your-docs-url.example.com"
-  SERVER_URL: "https://your-server-url.example.com"
