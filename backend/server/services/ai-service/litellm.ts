@@ -7,8 +7,6 @@ export function createLiteLlmAiService(): AiService {
   const models: AiModelDefinition[] = env.LITELLM_MODELS_PARSED.map((m) => ({
     name: m.name,
     enum: m.enum,
-    env: "LITELLM_API_KEY",
-    enabled: true,
   }));
 
   logStartupInfo("LiteLLM AI Service", [
@@ -17,7 +15,6 @@ export function createLiteLlmAiService(): AiService {
   ]);
 
   return {
-    enabled: !!env.LITELLM_API_KEY && models.length > 0,
     models,
 
     replyToConversation: async (model, getSystemPrompt, conversation) => {

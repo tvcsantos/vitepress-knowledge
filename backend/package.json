@@ -5,15 +5,13 @@
   "type": "module",
   "scripts": {
     "check": "vue-tsc --noEmit",
-    "aframe": "bun ../node_modules/@aklinker1/aframe/bin/aframe.ts",
-    "dev": "bun aframe",
-    "build": "bun aframe build",
-    "preview": "bun aframe build && bun .output/server-entry.ts",
+    "dev": "bun scripts/dev.ts",
+    "build": "bun run build.ts",
+    "preview": "bun run build.ts && bun run .output/server/index.js",
     "gen": "bun gen:sqlite",
     "gen:sqlite": "drizzle-kit generate --dialect sqlite --schema server/db/sqlite --out server/drizzle/sqlite --casing snake_case"
   },
   "dependencies": {
-    "@aklinker1/aframe": "^1.2.2",
     "@egoist/tailwindcss-icons": "^1.9.2",
     "@hono/zod-validator": "^0.8.0",
     "@iconify-json/heroicons": "^1.2.3",

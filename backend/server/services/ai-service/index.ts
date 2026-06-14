@@ -1,8 +1,7 @@
 import type { ChatMessage } from "../../../shared/types";
 
 export interface AiService {
-  enabled: boolean;
-  /** List of enabled models. */
+  /** List of available models. */
   models: AiModelDefinition[];
 
   /** Have the AI send a reply to a conversation. */
@@ -22,7 +21,5 @@ export interface AiService {
 
 export interface AiModelDefinition {
   name: string;
-  env: string;
   enum: string;
-  enabled: boolean;
 }

@@ -1,7 +1,8 @@
-import { fetchStatic } from "@aklinker1/aframe/server";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { serveStatic } from "hono/bun";
 import consola from "consola";
+import { join } from "node:path";
 import { assetApis } from "./apis/asset-apis";
 import { modelApis } from "./apis/model-apis";
 import { chatApis } from "./apis/chat-apis";
@@ -13,6 +14,10 @@ import { db } from "./dependencies";
 import { applyAppTemplateVars } from "./utils/template-vars";
 import { siteToConfig } from "./utils/site-config";
 
+// Directory containing the built SPA (Vite output). Resolved relative to the
+// server bundle so it works regardless of the current working directory.
+const PUBLIC_DIR = process.env.PUBLIC_DIR || join(import.meta.dir, "../public");
+
 const apiApp = new Hono()
   .route("/models", modelApis)
   .route("/chat", chatApis)
@@ -21,8 +26,16 @@ const apiApp = new Hono()
   .route("/sites", knowledgeApis)
   .get("/health", (c) => c.body(null, 204));
 
-// Serve static files from the bundled `public` dir (populated by aframe at build).
-const serveStatic = fetchStatic();
+// Serve index.html with runtime template vars applied for the resolved site.
+async function serveSpa(c: import("hono").Context) {
+  const siteId = new URL(c.req.url).searchParams.get("siteId");
+  const site = siteId
+    ? await db.sites.get(siteId)
+    : await db.sites.getDefault();
+  const html = await Bun.file(join(PUBLIC_DIR, "index.html")).text();
+  c.header("content-type", "text/html");
+  return c.body(site ? applyAppTemplateVars(html, siteToConfig(site)) : html);
+}
 
 const app = new Hono();
 
@@ -38,28 +51,16 @@ app.onError((err, c) => {
 app.route("/api", apiApp);
 app.route("/", assetApis);
 
-// SPA entry: serve index.html with runtime template vars applied for the site.
-app.get("/", async (c) => {
-  const siteId = new URL(c.req.url).searchParams.get("siteId");
-  const site = siteId
-    ? await db.sites.get(siteId)
-    : await db.sites.getDefault();
-  // In production index.html is embedded as the SPA fallback, not on disk.
-  const entry = aframe.static?.["fallback"] ?? aframe.static?.["/"];
-  const file = entry?.file ?? Bun.file(`${aframe.publicDir}/index.html`);
-  const html = await file.text();
-  c.header("content-type", "text/html");
-  return c.body(site ? applyAppTemplateVars(html, siteToConfig(site)) : html);
+// SPA entry point.
+app.get("/", serveSpa);
+// Static assets from the built public dir.
+app.get("/*", serveStatic({ root: PUBLIC_DIR }));
+// Unmatched routes: a missing file (has an extension) is a 404; otherwise fall
+// back to the SPA shell so client-side routing can handle it.
+app.notFound((c) => {
+  const path = new URL(c.req.url).pathname;
+  if (/\.[^/]+$/.test(path)) return c.body(null, 404);
+  return serveSpa(c);
 });
 
-// Everything else (assets + SPA fallback routes) is served from disk.
-app.notFound((c) => serveStatic(c.req.raw));
-
-// Transitional export: aframe's dev-server and generated server-entry both call
-// `server.listen(port)`. Phase 4 (removing aframe) simplifies this to `{ fetch }`.
-const server = {
-  fetch: app.fetch,
-  listen: (port: number) => Bun.serve({ port, fetch: app.fetch }),
-};
-
-export default server;
+export default app;

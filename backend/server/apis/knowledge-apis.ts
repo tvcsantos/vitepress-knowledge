@@ -6,17 +6,8 @@ import {
   invalidateKnowledgeCache,
   knowledgeDir,
 } from "../utils/knowledge-files";
+import { requireAdmin } from "../utils/admin";
 import { db } from "../dependencies";
-import env from "../utils/env";
-
-function requireAdmin(request: Request): void {
-  if (!env.ADMIN_TOKEN) return;
-  const auth = request.headers.get("authorization") ?? "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : auth;
-  if (token !== env.ADMIN_TOKEN) {
-    throw new HTTPException(401, { message: "Invalid or missing ADMIN_TOKEN" });
-  }
-}
 
 export const knowledgeApis = new Hono()
   // List all stored knowledge files for a site.

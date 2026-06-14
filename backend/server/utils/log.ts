@@ -50,14 +50,9 @@ export function aiModelRow(def: AiModelDefinition): StartupInfoRow {
       color: "blue",
     },
     {
-      key: "env",
-      value: def.env,
+      key: "enum",
+      value: def.enum,
       color: "cyan",
-    },
-    {
-      key: "enabled",
-      value: def.enabled,
-      color: def.enabled ? "green" : "red",
     },
   ];
 }

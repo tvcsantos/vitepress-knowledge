@@ -267,55 +267,82 @@ the app boots throughout, and diffing responses against the pre-migration server
 
 ## Phase 4 — Replace `@aklinker1/aframe` (build/dev framework)
 
-**What it does:**
+**What aframe does today:**
 
-- Dev: Vite dev server for `./app` (Vue), proxying `/ask-ai.js` + `/privacy-policy` to the
-  backend; runs the Bun server alongside.
-- Build: builds the Vue app with Vite, bundles `./server` + `./shared` with Bun, gzips
-  assets, optionally prerenders, and generates `server-entry.ts` that sets
-  `globalThis.aframe` (with `static` route map + `publicDir`) and calls `server.listen(port)`.
-- Runtime: `fetchStatic()` serves built files from `globalThis.aframe.static`; `main.ts`
-  reads `aframe.static["fallback"]` / `["/"]` for the SPA HTML.
+- **Dev:** Vite dev server for `./app` (Vue) on `:3000`, with the backend spawned via
+  `bun --watch` on `:3001`. Vite proxies `/api` + `/ask-ai.js` + `/privacy-policy` → `:3001`.
+- **Build (`compile: true` by default):** Vite-builds the app, bundles `./server` + `./shared`,
+  gzips assets, generates a `server-entry.ts` that sets `globalThis.aframe` (static route map
+  + `publicDir`) and calls `server.listen(port)`, then **`Bun.build({ compile })` produces a
+  self-contained single binary `.output/server-entry`** with all static files embedded.
+- **Runtime:** `fetchStatic()` serves embedded files from `globalThis.aframe.static`; `main.ts`'s
+  `/` route reads `aframe.static["fallback"]` for the SPA HTML.
+- **Docker:** copies only `.output/server-entry` (the binary) + `backend/server/drizzle`
+  (migrations read from disk at runtime), `ENTRYPOINT ["/usr/src/app/server-entry"]`.
 
-Prerender is disabled (`prerender: false`), which simplifies the replacement.
+Prerender is disabled (`prerender: false`). There is **no `backend/public/` dir** — static
+assets are exclusively the Vite build output.
 
-**Replacement strategy**
+### Confirmed decision: Bundled JS + static dir (no single binary)
 
-1. **App build** — use Vite directly:
-   - Move `backend/aframe.config.ts` Vite config (base `./`, plugins `vue()`,
-     `tailwindcss()`, the `applyTemplateVars` transform) into a standard `vite.config.ts`
-     with `root: "app"` and a defined `build.outDir`.
-   - Dev proxy (`/ask-ai.js`, `/privacy-policy`) stays in `server.proxy`.
-2. **Server bundle** — a `build.ts` script using `Bun.build`:
-   - Bundle `server/main.ts` (+ `shared`) to `.output/server`.
-   - Copy the Vite app output into `.output/public`.
-   - Optionally gzip static assets (mirror current behavior) — or serve uncompressed and
-     let the gateway/CDN handle compression.
-3. **Static serving** — replace `fetchStatic()` + `globalThis.aframe`:
-   - Write `server/utils/serve-static.ts` that serves files from a `publicDir`
-     (env-configurable, default `.output/public`) using `Bun.file`, with an SPA fallback to
-     `index.html`. This removes the `globalThis.aframe` dependency.
-   - Update `main.ts`: SPA fallback reads `index.html` from `publicDir` directly; the
-     catch-all route uses the new static handler. Remove the `aframe.static` lookups.
-4. **Entry point** — own `server-entry.ts` (or run `main.ts` directly):
-   - Since Phase 3 made the server `export default { port, fetch }`, Bun runs it directly.
-     A thin `server-entry.ts` can set `PORT`/`publicDir` if needed.
-5. **Env types** — replace `/// <reference types="@aklinker1/aframe/env" />` in
-   `backend/server/env.d.ts` with local declarations for any globals still referenced
-   (ideally none, once `globalThis.aframe` is gone).
-6. **Scripts** — update `backend/package.json`:
-   - `"dev": "vite"` (app) + a concurrent `bun --watch server/main.ts` (or a small dev
-     orchestrator).
-   - `"build": "bun run build.ts"`; `"preview": "bun run build.ts && bun .output/server/main.js"`.
-   - Remove the `"aframe"` script and `@aklinker1/aframe` dependency.
-7. **Dockerfile** — update build/run commands to the new scripts and output paths.
+Replace the compiled binary with a bundled JS server run by `bun`, serving static files from a
+directory. Simpler build, conventional, no `node_modules` shipped. Trade-off: the deploy
+artifact and Dockerfile change (copy a dir + run `bun` instead of executing one binary).
+Additional decision: **drop pre-gzip** — let the Spring Cloud Gateway/CDN handle compression.
 
-**Verify:** `bun run dev` serves the app with working proxies + HMR; `bun run build`
-produces a runnable server that serves the SPA, static assets, and all APIs; deployed
-image (under context path) still resolves assets via `<base href>` and `SERVER_URL`.
+### Replacement strategy
 
-**Risk:** medium-high. Build/deploy surface. Mitigate by validating the production
-container locally before updating k8s.
+1. **`vite.config.ts`** (replaces `aframe.config.ts`): standard Vite config —
+   `root: "app"`, `build.outDir: "../.output/public"`, `base: "./"`, `envDir: __dirname`,
+   `envPrefix: "APP_"`, plugins `vue()` + `tailwindcss()`, and the existing dev-only
+   `applyTemplateVars` `transformIndexHtml` plugin. Dev server: `port: 3000`, `strictPort: true`,
+   `proxy` for `/api`, `/ask-ai.js`, `/privacy-policy` → `http://localhost:3001`.
+   - **Fix the latent port bug:** the current `applyTemplateVars` plugin fetches `:5174`, but the
+     backend runs on `:3001`. Point it at `:3001` so dev template vars actually apply.
+2. **Static serving** — replace `fetchStatic()` + `globalThis.aframe` with Hono's
+   `serveStatic` from `hono/bun`:
+   - In `main.ts`: `app.use("/*", serveStatic({ root: PUBLIC_DIR }))` (or mount it as the
+     fallback after API/asset routes), and the `/` SPA route reads `index.html` from
+     `PUBLIC_DIR` via `Bun.file` and applies template vars (as today).
+   - `PUBLIC_DIR` resolved relative to the bundle (e.g. `join(import.meta.dir, "../public")`)
+     or an env var; default to the built `public/` dir.
+   - Remove all `globalThis.aframe.*` references and the `@aklinker1/aframe/server` import.
+   - Remove the Phase-3 `.listen()` shim; the server is now started by an explicit entry
+     (step 4).
+3. **`build.ts`** (Bun build script):
+   - `vite build` (app → `.output/public`).
+   - `Bun.build({ entrypoints: ["server/index.ts"], outdir: ".output/server", target: "bun",
+     minify: true })` — `target: "bun"` keeps `bun:sqlite` and `node:*` external; `hono`,
+     `drizzle`, etc. get bundled. Text imports (`ask-ai.js`, `privacy-policy.md` via
+     `with { type: "text" }`) are inlined by Bun.
+   - Copy `server/drizzle` → `.output/server/drizzle` so migrations resolve at runtime.
+4. **Server entry** (`server/index.ts`): tiny explicit start —
+   `import app from "./main"; Bun.serve({ port: env.PORT, fetch: app.fetch });`. `main.ts` goes
+   back to `export default app` (the Hono instance); the entry owns `Bun.serve`.
+5. **`env.d.ts`**: remove `/// <reference types="@aklinker1/aframe/env" />`. No `globalThis.aframe`
+   should remain.
+6. **`backend/package.json` scripts:**
+   - `"dev"`: run Vite + `bun --watch server/main.ts` concurrently (small `scripts/dev.ts`
+     spawning both with `Bun.spawn`, to avoid adding a `concurrently` dep). Backend dev still
+     needs `PORT=3001`.
+   - `"build": "bun run build.ts"`; `"preview": "bun run build.ts && bun run .output/server/index.js"`.
+   - Remove the `"aframe"` script and the `@aklinker1/aframe` dependency.
+7. **Dockerfile:** replace the binary copy/entrypoint with: copy `.output/server` (bundled JS +
+   drizzle) and `.output/public`; run `bun run /usr/src/app/server/index.js` from a cwd where
+   `server/drizzle/sqlite` and the public dir resolve. Keep migrations reachable.
+
+### Verify
+
+- `bun run dev`: app served with HMR; `/api`, `/ask-ai.js`, `/privacy-policy` proxied to the
+  backend; dev template vars applied (post port fix).
+- `bun run build` → `bun run .output/server/index.js`: serves the SPA at `/`, static assets,
+  and all APIs; migrations run; knowledge files read/write under the PVC path.
+- Under a context path: `<base href>` + `SERVER_URL` still resolve assets/API correctly.
+- Build the Docker image locally and smoke-test the container before touching k8s.
+- `rg "@aklinker1/aframe"` and `rg "globalThis.aframe|aframe\."` return nothing.
+
+**Risk:** medium-high — build/deploy surface and a changed artifact. Mitigate by validating the
+production container locally before updating k8s.
 
 ---
 

@@ -15,7 +15,6 @@
       "name": "vitepress-knowledge-server",
       "version": "0.3.10",
       "dependencies": {
-        "@aklinker1/aframe": "^1.2.2",
         "@egoist/tailwindcss-icons": "^1.9.2",
         "@hono/zod-validator": "^0.8.0",
         "@iconify-json/heroicons": "^1.2.3",
@@ -68,8 +67,6 @@
     },
   },
   "packages": {
-    "@aklinker1/aframe": ["@aklinker1/aframe@1.2.2", "", { "peerDependencies": { "puppeteer": "*", "vite": "*" }, "optionalPeers": ["puppeteer"], "bin": { "aframe": "bin/aframe.ts" } }, "sha512-UoKxMdk45GB9KDzWTMIskUq6LURt6N4LlR4ieYdzt77DJUIrotQ5pgv9JsNGxIPATSGFC3Aakr+6V8CaqgQwnw=="],
-
     "@algolia/autocomplete-core": ["@algolia/autocomplete-core@1.17.7", "", { "dependencies": { "@algolia/autocomplete-plugin-algolia-insights": "1.17.7", "@algolia/autocomplete-shared": "1.17.7" } }, "sha512-BjiPOW6ks90UKl7TwMv7oNQMnzU+t/wk9mgIDi6b1tXpUek7MW0lbNOUHpvam9pe3lVCf4xPFT+lK7s+e+fs7Q=="],
 
     "@algolia/autocomplete-plugin-algolia-insights": ["@algolia/autocomplete-plugin-algolia-insights@1.17.7", "", { "dependencies": { "@algolia/autocomplete-shared": "1.17.7" }, "peerDependencies": { "search-insights": ">= 1 < 3" } }, "sha512-Jca5Ude6yUOuyzjnz57og7Et3aXjbwCSDf/8onLHSQgw1qW3ALl9mrMWaXb5FmPVkV3EtkD2F/+NkT6VHyPu9A=="],

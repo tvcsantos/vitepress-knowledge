@@ -5,8 +5,6 @@ import type { KnowledgeDatabase } from "../services/knowledge-database";
 import env from "./env";
 
 type Knowledge = {
-  index: string[];
-  version: string;
   files: string[];
 };
 
@@ -56,11 +54,7 @@ export function getKnowledgeFiles(
       const files = await Promise.all(
         storedFiles.map((f) => readFile(join(dir, f.filename), "utf-8")),
       );
-      const knowledge: Knowledge = {
-        index: storedFiles.map((f) => `/knowledge/${f.filename}`),
-        version: "",
-        files,
-      };
+      const knowledge: Knowledge = { files };
       const resolved = Promise.resolve(knowledge);
       cache.set(siteId, resolved);
       return knowledge;
@@ -75,11 +69,7 @@ export function getKnowledgeFiles(
       index.map((file) => fetch(`${docsUrl}${file}`).then((res) => res.text())),
     );
 
-    const knowledge: Knowledge = {
-      index,
-      version: "",
-      files,
-    };
+    const knowledge: Knowledge = { files };
     const resolved = Promise.resolve(knowledge);
     cache.set(siteId, resolved);
     return knowledge;
