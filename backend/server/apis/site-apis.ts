@@ -6,6 +6,9 @@ import { invalidateCorsCache } from "../plugins/cors-plugin";
 import { invalidateKnowledgeCache } from "../utils/knowledge-files";
 import { requireAdmin } from "../utils/admin";
 import { db } from "../dependencies";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("sites");
 
 export const siteApis = new Hono()
   // List all registered sites.
@@ -20,7 +23,9 @@ export const siteApis = new Hono()
   // Create a new site.
   .post("/", zValidator("json", SiteInsert), async (c) => {
     requireAdmin(c.req.raw);
-    return c.json(await db.sites.insert(c.req.valid("json")));
+    const site = await db.sites.insert(c.req.valid("json"));
+    log.info({ siteId: site.id, name: site.name }, "Site created");
+    return c.json(site);
   })
   // Get a site by ID.
   .get("/:id", async (c) => {
@@ -42,6 +47,7 @@ export const siteApis = new Hono()
     // Invalidate caches so the next request picks up the new config
     invalidateCorsCache(id);
     if (body.docsUrl) invalidateKnowledgeCache(id);
+    log.info({ siteId: id, fields: Object.keys(body) }, "Site updated");
     return c.json(site);
   })
   // Delete a site by ID.
@@ -51,5 +57,6 @@ export const siteApis = new Hono()
     await db.sites.delete(id);
     invalidateCorsCache(id);
     invalidateKnowledgeCache(id);
+    log.info({ siteId: id }, "Site deleted");
     return c.body(null, 204);
   });

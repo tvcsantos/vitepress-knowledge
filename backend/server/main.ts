@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { serveStatic } from "hono/bun";
-import consola from "consola";
 import { join } from "node:path";
+import { createLogger } from "./utils/logger";
 import { assetApis } from "./apis/asset-apis";
 import { modelApis } from "./apis/model-apis";
 import { chatApis } from "./apis/chat-apis";
@@ -17,6 +17,8 @@ import { siteToConfig } from "./utils/site-config";
 // Directory containing the built SPA (Vite output). Resolved relative to the
 // server bundle so it works regardless of the current working directory.
 const PUBLIC_DIR = process.env.PUBLIC_DIR || join(import.meta.dir, "../public");
+
+const log = createLogger("http");
 
 const apiApp = new Hono()
   .route("/models", modelApis)
@@ -43,7 +45,16 @@ app.use(corsMiddleware);
 app.use(requestLoggerMiddleware);
 
 app.onError((err, c) => {
-  consola.error(`[http] ${c.req.method} ${c.req.url} ERROR`, err);
+  const status = err instanceof HTTPException ? err.status : 500;
+  // Only server errors get an error-level line with the stack here; the request
+  // logger already records a summary line (with status) for every request, so
+  // 4xx client errors don't need a second log entry.
+  if (status >= 500) {
+    log.error(
+      { method: c.req.method, path: new URL(c.req.url).pathname, err },
+      "unhandled error",
+    );
+  }
   if (err instanceof HTTPException) return err.getResponse();
   return c.json({ message: "Internal Server Error" }, 500);
 });

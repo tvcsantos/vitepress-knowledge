@@ -1,7 +1,9 @@
 import { createMiddleware } from "hono/factory";
-import consola from "consola";
 import { db } from "../dependencies";
 import { siteToConfig } from "../utils/site-config";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("cors");
 
 // Sync cache: siteId -> allowed origins Set (TTL 5 min)
 const originCache = new Map<
@@ -12,13 +14,18 @@ const CACHE_TTL_MS = 5 * 60 * 1_000;
 
 /** Warm the cache for a given siteId (async, fire-and-forget). */
 function warmCache(siteId: string): void {
-  db.sites.get(siteId).then((site) => {
-    if (!site) return;
-    originCache.set(siteId, {
-      origins: siteToConfig(site).corsOrigin,
-      expiresAt: Date.now() + CACHE_TTL_MS,
-    });
-  });
+  db.sites
+    .get(siteId)
+    .then((site) => {
+      if (!site) return;
+      originCache.set(siteId, {
+        origins: siteToConfig(site).corsOrigin,
+        expiresAt: Date.now() + CACHE_TTL_MS,
+      });
+    })
+    .catch((err) =>
+      log.warn({ siteId, err }, "Failed to warm CORS origin cache"),
+    );
 }
 
 /** Resolve allowed origins for a siteId synchronously from cache. */
@@ -47,13 +54,14 @@ export const corsMiddleware = createMiddleware(async (c, next) => {
   const allowedOrigins = siteId ? getCachedOrigins(siteId) : undefined;
 
   const origin = c.req.header("origin") ?? "";
-  if (allowedOrigins?.has(origin)) {
+  const allowed = !!origin && !!allowedOrigins?.has(origin);
+  if (allowed) {
     c.header("Access-Control-Allow-Origin", origin);
     c.header("Access-Control-Allow-Methods", CORS_METHODS);
     c.header("Access-Control-Allow-Headers", CORS_HEADERS);
   }
 
-  consola.debug("CORS:", { origin, allowed: allowedOrigins });
+  if (origin) log.debug({ siteId, origin, allowed }, "CORS check");
 
   if (c.req.method === "OPTIONS") return c.body(null, 204);
 

@@ -1,5 +1,6 @@
 import app from "./main";
 import env from "./utils/env";
+import { createLogger } from "./utils/logger";
 
 Bun.serve({ port: env.PORT, fetch: app.fetch });
-console.log(`Server running @ http://localhost:${env.PORT}`);
+createLogger("server").info({ port: env.PORT }, "Server listening");

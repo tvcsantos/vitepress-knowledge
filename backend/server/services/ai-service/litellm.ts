@@ -1,7 +1,9 @@
 import { HTTPException } from "hono/http-exception";
 import type { AiModelDefinition, AiService } from ".";
 import env from "../../utils/env";
-import { aiModelRows, aiServiceRow, logStartupInfo } from "../../utils/log";
+import { createLogger } from "../../utils/logger";
+
+const log = createLogger("ai");
 
 export function createLiteLlmAiService(): AiService {
   const models: AiModelDefinition[] = env.LITELLM_MODELS_PARSED.map((m) => ({
@@ -9,10 +11,17 @@ export function createLiteLlmAiService(): AiService {
     enum: m.enum,
   }));
 
-  logStartupInfo("LiteLLM AI Service", [
-    aiServiceRow("LITELLM_API_KEY"),
-    ...aiModelRows(models),
-  ]);
+  log.info(
+    {
+      baseUrl: env.LITELLM_BASE_URL,
+      apiKey: env.LITELLM_API_KEY ? "<set>" : "<unset>",
+      models: models.map((m) => m.enum),
+    },
+    "LiteLLM AI service configured",
+  );
+  if (!env.LITELLM_API_KEY) log.warn("LITELLM_API_KEY is not set");
+  if (models.length === 0)
+    log.warn("No models configured (LITELLM_MODELS empty)");
 
   return {
     models,
@@ -34,6 +43,10 @@ export function createLiteLlmAiService(): AiService {
         }),
       });
       if (res.status !== 200) {
+        log.error(
+          { model: model.enum, status: res.status, statusText: res.statusText },
+          "LiteLLM upstream error",
+        );
         throw new HTTPException(500, {
           message: `LiteLLM API responded with ${res.status} ${res.statusText}`,
         });
@@ -62,6 +75,10 @@ export function createLiteLlmAiService(): AiService {
         }),
       });
       if (res.status !== 200) {
+        log.error(
+          { model: model.enum, status: res.status, statusText: res.statusText },
+          "LiteLLM upstream error",
+        );
         throw new HTTPException(500, {
           message: `LiteLLM API responded with ${res.status} ${res.statusText}`,
         });

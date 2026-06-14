@@ -1,4 +1,4 @@
-import { envRow, logStartupInfo } from "./log";
+import { createLogger } from "./logger";
 
 // LiteLLM
 
@@ -27,6 +27,7 @@ const DATABASE_SQLITE_PATH =
 // Server
 
 const PORT = Number(process.env.PORT) || 5174;
+const LOG_LEVEL = process.env.LOG_LEVEL?.trim() || "info";
 
 // Admin
 
@@ -40,11 +41,22 @@ const env = {
   DATABASE_TYPE,
   DATABASE_SQLITE_PATH,
   PORT,
+  LOG_LEVEL,
   ADMIN_TOKEN,
 };
 export default env;
 
-logStartupInfo(
-  "Resolved Environment Variables",
-  Object.keys(env).map((key) => envRow(key as any)),
+// Log the resolved config at startup, with secrets redacted.
+createLogger("env").info(
+  {
+    LITELLM_BASE_URL,
+    LITELLM_MODELS,
+    DATABASE_TYPE,
+    DATABASE_SQLITE_PATH,
+    PORT,
+    LOG_LEVEL,
+    LITELLM_API_KEY: LITELLM_API_KEY ? "<set>" : "<unset>",
+    ADMIN_TOKEN: ADMIN_TOKEN ? "<set>" : "<unset>",
+  },
+  "Environment resolved",
 );

@@ -5,6 +5,8 @@ metadata:
 data:
   # --- Server ---
   PORT: "5174"
+  # Log level: trace | debug | info | warn | error | fatal | silent
+  LOG_LEVEL: "info"
 
   # --- Database ---
   DATABASE_TYPE: "sqlite"

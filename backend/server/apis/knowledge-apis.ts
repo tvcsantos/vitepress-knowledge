@@ -8,6 +8,9 @@ import {
 } from "../utils/knowledge-files";
 import { requireAdmin } from "../utils/admin";
 import { db } from "../dependencies";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("knowledge");
 
 export const knowledgeApis = new Hono()
   // List all stored knowledge files for a site.
@@ -44,6 +47,10 @@ export const knowledgeApis = new Hono()
 
     const metadata = await db.knowledgeFiles.upsert(id, filename);
     invalidateKnowledgeCache(id);
+    log.info(
+      { siteId: id, filename, bytes: content.length },
+      "Knowledge file uploaded",
+    );
     return c.json(metadata);
   })
   // Delete all stored knowledge files for a site, reverting to the docsUrl fetch fallback.
@@ -58,6 +65,7 @@ export const knowledgeApis = new Hono()
     await rm(dir, { recursive: true, force: true });
     await db.knowledgeFiles.deleteAll(id);
     invalidateKnowledgeCache(id);
+    log.info({ siteId: id }, "All knowledge files deleted");
     return c.body(null, 204);
   })
   // Delete a single stored knowledge file by its ID.
@@ -72,6 +80,10 @@ export const knowledgeApis = new Hono()
       await rm(join(dir, file.filename), { force: true });
       await db.knowledgeFiles.delete(fileId);
       invalidateKnowledgeCache(id);
+      log.info(
+        { siteId: id, fileId, filename: file.filename },
+        "Knowledge file deleted",
+      );
     }
     return c.body(null, 204);
   });

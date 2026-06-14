@@ -1,29 +1,26 @@
-import { consola } from "consola";
 import { createMiddleware } from "hono/factory";
-import pc from "picocolors";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("http");
+
+// Requests slower than this are logged at info even on success.
+const SLOW_REQUEST_MS = 1_000;
 
 export const requestLoggerMiddleware = createMiddleware(async (c, next) => {
-  const { method, url } = c.req;
-  consola.info(
-    `${pc.cyan("[http]")} <-- ${getRequestColor(method)(method)} ${url}`,
-  );
+  const start = performance.now();
   await next();
-  consola.info(
-    `${pc.cyan("[http]")} --> ${getRequestColor(method)(method)} ${url} ${c.res.status}`,
-  );
-});
+  const durationMs = Math.round(performance.now() - start);
+  const status = c.res.status;
+  const fields = {
+    method: c.req.method,
+    path: new URL(c.req.url).pathname,
+    status,
+    durationMs,
+  };
 
-function getRequestColor(method: string) {
-  switch (method.toUpperCase()) {
-    case "GET":
-      return pc.blue;
-    case "POST":
-      return pc.green;
-    case "PUT":
-      return pc.yellow;
-    case "DELETE":
-      return pc.red;
-    default:
-      return pc.dim;
-  }
-}
+  // Errors and slow requests are always logged; everything else is debug-only.
+  if (status >= 500) log.error(fields, "request");
+  else if (status >= 400) log.warn(fields, "request");
+  else if (durationMs >= SLOW_REQUEST_MS) log.warn(fields, "slow request");
+  else log.debug(fields, "request");
+});

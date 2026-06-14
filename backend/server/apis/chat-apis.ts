@@ -7,6 +7,9 @@ import { applySystemPromptTemplateVars } from "../utils/template-vars";
 import { PostChatRequestBody } from "../../shared/types";
 import { siteToConfig } from "../utils/site-config";
 import { db, aiService } from "../dependencies";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("chat");
 
 export const chatApis = new Hono()
   // Send messages to an AI model and return with the response.
@@ -24,6 +27,15 @@ export const chatApis = new Hono()
       throw new HTTPException(400, {
         message: "Model not found or not enabled",
       });
+
+    log.info(
+      {
+        siteId: body.siteId,
+        model: model.enum,
+        messages: body.messages.length,
+      },
+      "Chat request",
+    );
 
     const response = await aiService.replyToConversation(
       model,
@@ -61,6 +73,16 @@ export const chatApis = new Hono()
       throw new HTTPException(400, {
         message: "Model not found or not enabled",
       });
+
+    log.info(
+      {
+        siteId: body.siteId,
+        model: model.enum,
+        messages: body.messages.length,
+        stream: true,
+      },
+      "Chat request",
+    );
 
     const getSystemPrompt = async () => {
       const knowledge = await getKnowledgeFiles(

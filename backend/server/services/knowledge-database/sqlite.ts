@@ -7,8 +7,10 @@ import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import * as schema from "../../db/sqlite/schema";
 import { and, eq } from "drizzle-orm";
 import env from "../../utils/env";
-import { logStartupInfo } from "../../utils/log";
+import { createLogger } from "../../utils/logger";
 import { Cron } from "croner";
+
+const log = createLogger("db");
 
 const { sites, knowledgeFiles } = schema;
 
@@ -33,12 +35,7 @@ function siteFromDb(row: DbSite): Site {
 export async function createSqliteKnowledgeDatabase(): Promise<KnowledgeDatabase> {
   const file = env.DATABASE_SQLITE_PATH;
 
-  logStartupInfo("Database", [
-    [
-      { key: "type", value: "sqlite", color: "blue" },
-      { key: "path", value: file, color: "cyan" },
-    ],
-  ]);
+  log.info({ type: "sqlite", path: file }, "Opening database");
 
   await mkdir(dirname(file), { recursive: true });
   const db = drizzle(file, {
@@ -56,6 +53,7 @@ export async function createSqliteKnowledgeDatabase(): Promise<KnowledgeDatabase
     PRAGMA journal_mode = WAL;
     PRAGMA synchronous = NORMAL;
   `);
+  log.info("Database ready (migrations applied)");
 
   // Setup jobs
 

@@ -3,6 +3,9 @@ import { readFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import type { KnowledgeDatabase } from "../services/knowledge-database";
 import env from "./env";
+import { createLogger } from "./logger";
+
+const log = createLogger("knowledge");
 
 type Knowledge = {
   files: string[];
@@ -54,6 +57,10 @@ export function getKnowledgeFiles(
       const files = await Promise.all(
         storedFiles.map((f) => readFile(join(dir, f.filename), "utf-8")),
       );
+      log.debug(
+        { siteId, source: "stored", fileCount: files.length },
+        "Loaded knowledge from PVC",
+      );
       const knowledge: Knowledge = { files };
       const resolved = Promise.resolve(knowledge);
       cache.set(siteId, resolved);
@@ -61,18 +68,32 @@ export function getKnowledgeFiles(
     }
 
     // Fall back to fetching from docsUrl.
-    const index: string[] = await fetch(`${docsUrl}/knowledge/index.json`).then(
-      (res) => res.json(),
-    );
+    try {
+      const index: string[] = await fetch(
+        `${docsUrl}/knowledge/index.json`,
+      ).then((res) => res.json());
 
-    const files = await Promise.all(
-      index.map((file) => fetch(`${docsUrl}${file}`).then((res) => res.text())),
-    );
+      const files = await Promise.all(
+        index.map((file) =>
+          fetch(`${docsUrl}${file}`).then((res) => res.text()),
+        ),
+      );
 
-    const knowledge: Knowledge = { files };
-    const resolved = Promise.resolve(knowledge);
-    cache.set(siteId, resolved);
-    return knowledge;
+      log.debug(
+        { siteId, source: "docsUrl", docsUrl, fileCount: files.length },
+        "Fetched knowledge from docsUrl",
+      );
+      const knowledge: Knowledge = { files };
+      const resolved = Promise.resolve(knowledge);
+      cache.set(siteId, resolved);
+      return knowledge;
+    } catch (err) {
+      log.warn(
+        { siteId, docsUrl, err },
+        "Failed to fetch knowledge from docsUrl",
+      );
+      throw err;
+    }
   });
 }
 
