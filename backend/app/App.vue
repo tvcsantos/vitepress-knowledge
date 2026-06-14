@@ -13,7 +13,7 @@ const SELECTED_MODEL_STORAGE_KEY = "vpk:selected-model";
 
 // SITE_ID is injected by the server into index.html at serve time.
 // In dev, if the backend wasn't ready when Vite first transformed the HTML,
-// the value may be "unknown" — resolve it lazily from the API in that case.
+// the value may be "unknown" - resolve it lazily from the API in that case.
 let _resolvedSiteId: string | undefined;
 async function getResolvedSiteId(): Promise<string> {
   if (_resolvedSiteId) return _resolvedSiteId;

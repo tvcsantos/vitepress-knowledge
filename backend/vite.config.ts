@@ -22,7 +22,7 @@ function applyTemplateVars(): Plugin {
           if (site) return applyAppTemplateVars(html, siteToConfig(site));
         }
       } catch {
-        // Server not ready yet — template vars will be unapplied on first load.
+        // Server not ready yet - template vars will be unapplied on first load.
       }
       return html;
     },

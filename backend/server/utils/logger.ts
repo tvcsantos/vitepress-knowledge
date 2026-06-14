@@ -1,7 +1,7 @@
 import { pino } from "pino";
 
 // Read the level straight from the environment (not ./env) to avoid an import
-// cycle — env.ts logs via this module at load time.
+// cycle - env.ts logs via this module at load time.
 const level = process.env.LOG_LEVEL?.trim() || "info";
 
 /**

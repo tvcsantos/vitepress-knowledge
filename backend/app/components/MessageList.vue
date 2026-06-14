@@ -8,7 +8,7 @@ const props = defineProps<{
   loading?: boolean;
 }>();
 
-// Show spinner only while waiting for the first token — once the assistant
+// Show spinner only while waiting for the first token - once the assistant
 // bubble has content the spinner should disappear.
 const showSpinner = computed(() => {
   if (!props.loading) return false;

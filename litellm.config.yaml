@@ -5,7 +5,7 @@
 # Reference these aliases (comma-separated) in LITELLM_MODELS in the
 # vitepress-knowledge backend env.
 #
-# `os.environ/<NAME>` reads from the proxy container's environment — set the
+# `os.environ/<NAME>` reads from the proxy container's environment - set the
 # corresponding vars in compose.litellm.yml.
 
 model_list:

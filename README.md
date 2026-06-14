@@ -41,7 +41,7 @@ variables.
 
 Per-site configuration (branding, system prompt, CORS, etc.) lives in the server's
 database, not in env vars. Create a site via the admin API and note the returned
-`id` — that's your `siteId`:
+`id` - that's your `siteId`:
 
 ```sh
 curl -X POST "https://chat.your-docs.com/api/sites" \
@@ -104,7 +104,7 @@ build complete in 2.57s.
 ```
 
 Knowledge files are hosted on your production docs site at `/knowledge/*`. The
-server fetches them from your `docsUrl` automatically — or you can upload them to
+server fetches them from your `docsUrl` automatically - or you can upload them to
 the server directly (see [`backend/README.md`](backend/README.md#knowledge-files-admin-api)).
 
 ---

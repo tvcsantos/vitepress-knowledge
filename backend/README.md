@@ -7,7 +7,7 @@ The server does three things:
 1. Serves the JS for the "Ask AI" button and chat window (`/ask-ai.js`).
 2. Proxies chat requests to a [LiteLLM](https://docs.litellm.ai/docs/simple_proxy)
    proxy so your model API keys never reach the browser.
-3. Stores per-site configuration and knowledge files (multi-tenant — one server
+3. Stores per-site configuration and knowledge files (multi-tenant - one server
    can power many docs sites, each identified by a `siteId`).
 
 LiteLLM is the only model backend; it's an OpenAI-compatible proxy that fronts
@@ -16,19 +16,19 @@ LiteLLM is the only model backend; it's an OpenAI-compatible proxy that fronts
 ## Environment Variables
 
 Server-wide configuration. **Per-site** settings (app name, branding, system
-prompt, CORS, etc.) are **not** environment variables — they're stored in the
+prompt, CORS, etc.) are **not** environment variables - they're stored in the
 database and managed through the [sites API](#sites-admin-api).
 
 | Name                   | Default                 | Description                                                                                                                                                     |
 | ---------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `LITELLM_API_KEY`      | —                       | LiteLLM proxy key, sent as `Authorization: Bearer`. Required to chat.                                                                                           |
+| `LITELLM_API_KEY`      | -                       | LiteLLM proxy key, sent as `Authorization: Bearer`. Required to chat.                                                                                           |
 | `LITELLM_BASE_URL`     | `http://localhost:4000` | URL of your LiteLLM proxy. `/chat/completions` is appended automatically.                                                                                       |
-| `LITELLM_MODELS`       | —                       | Comma-separated model aliases (as defined in your LiteLLM config) as `alias[:Display Name]`. The display name is shown in the chat UI.                          |
+| `LITELLM_MODELS`       | -                       | Comma-separated model aliases (as defined in your LiteLLM config) as `alias[:Display Name]`. The display name is shown in the chat UI.                          |
 | `DATABASE_TYPE`        | `sqlite`                | Database backend. Only `sqlite` is supported.                                                                                                                   |
 | `DATABASE_SQLITE_PATH` | `data/knowledge.db`     | Path to the SQLite file. Knowledge files are stored alongside it under `<dir>/knowledge/<siteId>/`.                                                             |
 | `PORT`                 | `5174`                  | Port the server listens on. (The Docker image defaults this to `3000`.)                                                                                         |
 | `LOG_LEVEL`            | `info`                  | Pino log level: `trace` \| `debug` \| `info` \| `warn` \| `error` \| `fatal` \| `silent`.                                                                       |
-| `ADMIN_TOKEN`          | —                       | Bearer token protecting the admin APIs (site management + knowledge upload). If unset, those APIs are open (not recommended). Generate: `openssl rand -hex 32`. |
+| `ADMIN_TOKEN`          | -                       | Bearer token protecting the admin APIs (site management + knowledge upload). If unset, those APIs are open (not recommended). Generate: `openssl rand -hex 32`. |
 
 ## Public API
 
@@ -52,7 +52,7 @@ A "site" holds all per-tenant configuration. Admin routes require
 | Method   | Path                 | Auth  | Description                                        |
 | -------- | -------------------- | ----- | -------------------------------------------------- |
 | `GET`    | `/api/sites`         | admin | List all sites.                                    |
-| `GET`    | `/api/sites/default` | —     | The single site, or `null` if zero/multiple exist. |
+| `GET`    | `/api/sites/default` | -     | The single site, or `null` if zero/multiple exist. |
 | `POST`   | `/api/sites`         | admin | Create a site.                                     |
 | `GET`    | `/api/sites/:id`     | admin | Get a site.                                        |
 | `PATCH`  | `/api/sites/:id`     | admin | Update a site (partial).                           |
