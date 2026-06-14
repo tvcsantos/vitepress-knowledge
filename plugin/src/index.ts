@@ -11,7 +11,7 @@ import type { KnowledgeContext, KnowledgeOptions } from "./types";
 export * from "./types";
 
 export default function knowledge<ThemeConfig>(
-  options?: KnowledgeOptions<ThemeConfig>,
+  options: KnowledgeOptions<ThemeConfig>,
 ): UserConfig<ThemeConfig>["extends"] {
   const htmlToMd = createHtmlToMdConverter();
   const results: KnowledgeContext[] = [];
@@ -22,24 +22,24 @@ export default function knowledge<ThemeConfig>(
     home: ".VPHome",
   };
 
-  const ignore = new Set(options?.ignore);
+  const ignore = new Set(options.ignore);
   ignore.add("404.md");
 
   return {
     // Allow extending another theme/config
-    extends: options?.extends,
+    extends: options.extends,
 
     // Add necessary scripts for "Ask AI" button
-    head: options?.serverUrl
+    head: options.serverUrl
       ? [
           // Loads the JS that adds the "Ask AI" button and chat window to website
-          // <script defer async src="${options.serverUrl}/ask-ai.js">
+          // <script defer async src="${options.serverUrl}/ask-ai.js?siteId=${options.siteId}">
           [
             "script",
             {
               defer: "true",
               async: "true",
-              src: `${options.serverUrl}/ask-ai.js`,
+              src: `${options.serverUrl}/ask-ai.js?siteId=${options.siteId}`,
             },
           ],
         ]
@@ -54,9 +54,9 @@ export default function knowledge<ThemeConfig>(
         const { document } = parseHTML(code);
 
         const selector =
-          options?.pageSelectors?.[ctx.page] ??
-          options?.layoutSelectors?.[ctx.pageData.frontmatter.layout] ??
-          options?.selector ??
+          options.pageSelectors?.[ctx.page] ??
+          options.layoutSelectors?.[ctx.pageData.frontmatter.layout] ??
+          options.selector ??
           DEFAULT_LAYOUT_SELECTORS[
             ctx.pageData.frontmatter.layout ?? "undefined"
           ];
@@ -108,7 +108,7 @@ export default function knowledge<ThemeConfig>(
 
     // Write results to knowledge.txt file
     async buildEnd(siteConfig) {
-      const knowledgeDir = join(siteConfig.outDir, options?.dir ?? "knowledge");
+      const knowledgeDir = join(siteConfig.outDir, options.dir ?? "knowledge");
 
       const pageOrderMap = getPageOrder(siteConfig);
       results.sort((a, b) => {
@@ -120,7 +120,7 @@ export default function knowledge<ThemeConfig>(
         return a.sourceMdFile.localeCompare(b.sourceMdFile);
       });
 
-      const groups = groupPaths(options?.paths, results);
+      const groups = groupPaths(options.paths, results);
       for (const [groupName, files] of Object.entries(groups)) {
         await writeKnowledgeFile(knowledgeDir, groupName, files);
       }

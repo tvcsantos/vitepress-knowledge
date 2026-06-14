@@ -10,15 +10,14 @@ CREATE TABLE `sites` (
 	`assistant_icon_url` text NOT NULL,
 	`system_prompt` text NOT NULL,
 	`welcome_message` text NOT NULL,
-	`rate_limit_rpm` integer,
 	`created_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE `rate_limit_entries` (
+CREATE TABLE `knowledge_files` (
 	`id` text PRIMARY KEY NOT NULL,
-	`ip` text NOT NULL,
 	`site_id` text NOT NULL,
-	`created_at` integer NOT NULL
+	`filename` text NOT NULL,
+	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX `rate_limit_ip_site_created_idx` ON `rate_limit_entries` (`ip`,`site_id`,`created_at`);
+CREATE INDEX `knowledge_files_site_filename_idx` ON `knowledge_files` (`site_id`,`filename`);

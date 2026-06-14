@@ -1,4 +1,8 @@
 import { Mutex } from "async-mutex";
+import { readFile } from "node:fs/promises";
+import { join, dirname } from "node:path";
+import type { KnowledgeDatabase } from "../services/knowledge-database";
+import env from "./env";
 
 type Knowledge = {
   index: string[];
@@ -27,9 +31,15 @@ function getMutex(siteId: string): Mutex {
   return mutex;
 }
 
+/** Base directory where knowledge files are stored on the PVC. */
+export function knowledgeDir(siteId: string): string {
+  return join(dirname(env.DATABASE_SQLITE_PATH), "knowledge", siteId);
+}
+
 export function getKnowledgeFiles(
   siteId: string,
   docsUrl: string,
+  db: KnowledgeDatabase,
 ): Promise<Knowledge> {
   const cached = cache.get(siteId);
   if (cached) return cached;
@@ -39,6 +49,24 @@ export function getKnowledgeFiles(
     const cachedAfterLock = cache.get(siteId);
     if (cachedAfterLock) return cachedAfterLock;
 
+    // Check DB for stored knowledge file metadata first.
+    const storedFiles = await db.knowledgeFiles.getAll(siteId);
+    if (storedFiles.length > 0) {
+      const dir = knowledgeDir(siteId);
+      const files = await Promise.all(
+        storedFiles.map((f) => readFile(join(dir, f.filename), "utf-8")),
+      );
+      const knowledge: Knowledge = {
+        index: storedFiles.map((f) => `/knowledge/${f.filename}`),
+        version: "",
+        files,
+      };
+      const resolved = Promise.resolve(knowledge);
+      cache.set(siteId, resolved);
+      return knowledge;
+    }
+
+    // Fall back to fetching from docsUrl.
     const index: string[] = await fetch(`${docsUrl}/knowledge/index.json`).then(
       (res) => res.json(),
     );

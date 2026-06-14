@@ -137,7 +137,7 @@ function chatWindow() {
 
   const chatWindow = document.createElement("iframe");
   chatWindow.classList.add("chat-window");
-  chatWindow.src = "{{ SERVER_URL }}";
+  chatWindow.src = "{{ SERVER_URL }}?siteId={{ SITE_ID }}";
 
   function notifyIframeOfTheme() {
     const htmlElement = document.documentElement;

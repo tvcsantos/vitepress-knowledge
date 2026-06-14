@@ -14,6 +14,10 @@ spec:
       labels:
         app: vitepress-knowledge-server
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        fsGroup: 1000
       containers:
         - name: server
           image: aklinker1/vitepress-knowledge-server:latest
@@ -41,6 +45,12 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /usr/src/app/data
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
           resources:
             requests:
               cpu: "100m"
@@ -59,30 +69,40 @@ spec:
           envFrom:
             - secretRef:
                 name: vitepress-knowledge-litellm
+          startupProbe:
+            httpGet:
+              path: /health/readiness
+              port: litellm
+            failureThreshold: 30
+            periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /health/liveliness
               port: litellm
-            initialDelaySeconds: 15
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /health/readiness
               port: litellm
-            initialDelaySeconds: 10
             periodSeconds: 10
           volumeMounts:
             - name: litellm-config
               mountPath: /app/config.yaml
               subPath: config.yaml
               readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
           resources:
             requests:
               cpu: "100m"
-              memory: "256Mi"
+              memory: "512Mi"
             limits:
               cpu: "500m"
-              memory: "512Mi"
+              memory: "2Gi"
 
       volumes:
         - name: data

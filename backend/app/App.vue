@@ -23,7 +23,7 @@ async function getResolvedSiteId(): Promise<string> {
     return _resolvedSiteId;
   }
   try {
-    const res = await fetch("/api/sites/default");
+    const res = await fetch(`${SERVER_URL}/api/sites/default`);
     if (res.ok) {
       const site = await res.json();
       _resolvedSiteId = site?.id;
@@ -92,7 +92,7 @@ const sendMessage = async () => {
     const newThreadMessages: ChatMessage[] = [...oldThreadMessages, userMessage];
     threadMessages.value = [...newThreadMessages];
 
-    const res = await fetch("/api/chat/stream", {
+    const res = await fetch(`${SERVER_URL}/api/chat/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -161,7 +161,7 @@ const privacyPolicyHtml = useMdToHtml(privacyPolicyMd);
 
 async function openPrivacyPolicy() {
   if (!privacyPolicyMd.value) {
-    const res = await fetch("/privacy-policy");
+    const res = await fetch(`${SERVER_URL}/privacy-policy`);
     if (res.ok) privacyPolicyMd.value = await res.text();
   }
   showPrivacyPolicy.value = true;

@@ -7,13 +7,18 @@ import { assetApis } from "./apis/asset-apis";
 import { modelApis } from "./apis/model-apis";
 import { chatApis } from "./apis/chat-apis";
 import { siteApis } from "./apis/site-apis";
+import { knowledgeApis } from "./apis/knowledge-apis";
 import { corsPlugin } from "./plugins/cors-plugin";
 import { requestLoggerPlugin } from "./plugins/request-logger-plugin";
+import { container } from "./dependencies";
+import { applyAppTemplateVars } from "./utils/template-vars";
+import { siteToConfig } from "./utils/site-config";
 
 const apiApp = createApp({ prefix: "/api" })
   .use(modelApis)
   .use(chatApis)
   .use(siteApis)
+  .use(knowledgeApis)
   .get("/health", { operationId: "health", responses: NoResponse }, () => {});
 
 const app = createApp({
@@ -32,18 +37,26 @@ const app = createApp({
   .use(requestLoggerPlugin)
   .use(assetApis)
   .use(apiApp)
-  .mount(
-    fetchStatic({
-      // HTML files are served as-is; per-site template vars are applied
-      // by the ask-ai.js endpoint via ?siteId= query param.
-      onFetch: async (_path, file) => {
-        if (!file.name?.endsWith(".html")) return;
-        return new Response(await file.text(), {
-          headers: { "content-type": file.type },
-        });
-      },
-    }),
-  );
+  .get(
+    "/",
+    { operationId: "getApp", responses: NoResponse },
+    async ({ url }): Promise<any> => {
+      const db = container.resolve("db");
+      const siteId = url.searchParams.get("siteId");
+      const site = siteId
+        ? await db.sites.get(siteId)
+        : await db.sites.getDefault();
+      // In production index.html is embedded as the SPA fallback, not on disk.
+      const entry = aframe.static?.["fallback"] ?? aframe.static?.["/"];
+      const file = entry?.file ?? Bun.file(`${aframe.publicDir}/index.html`);
+      const html = await file.text();
+      if (!site) return new Response(html, { headers: { "content-type": "text/html" } });
+      return new Response(applyAppTemplateVars(html, siteToConfig(site)), {
+        headers: { "content-type": "text/html" },
+      });
+    },
+  )
+  .mount(fetchStatic());
 
 export default app;
 

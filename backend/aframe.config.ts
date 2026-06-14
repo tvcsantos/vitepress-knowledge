@@ -29,6 +29,8 @@ function applyTemplateVars(): Plugin {
 
 export default defineConfig({
   vite: {
+    // Use relative base so assets resolve correctly under any context path at runtime.
+    base: "./",
     plugins: [vue(), tailwindcss(), applyTemplateVars()],
     server: {
       proxy: {

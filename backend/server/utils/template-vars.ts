@@ -14,12 +14,17 @@ export function applyAppTemplateVars(
   site: SiteConfig,
 ): string {
   const welcomeVars = welcomeMessageVars(site);
+  // Derive <base href> from SERVER_URL pathname so relative assets resolve
+  // correctly under any context path at runtime.
+  // e.g. https://api.example.com/my-context/knowledge -> /my-context/knowledge/
+  const baseHref = new URL(site.serverUrl).pathname.replace(/\/?$/, "/");
   return applyTemplateVars(template, {
     ...welcomeVars,
     BRAND_COLOR: site.brandColor,
     BRAND_CONTENT_COLOR: site.brandContentColor,
     WELCOME_MESSAGE: applyTemplateVars(site.welcomeMessage, welcomeVars),
     SITE_ID: site.id,
+    BASE_HREF: baseHref,
   });
 }
 

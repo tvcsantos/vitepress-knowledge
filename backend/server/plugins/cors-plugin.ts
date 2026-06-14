@@ -3,7 +3,7 @@ import consola from "consola";
 import { container } from "../dependencies";
 import { siteToConfig } from "../utils/site-config";
 
-// Sync cache: siteId → allowed origins Set (TTL 5 min)
+// Sync cache: siteId -> allowed origins Set (TTL 5 min)
 const originCache = new Map<string, { origins: Set<string>; expiresAt: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1_000;
 

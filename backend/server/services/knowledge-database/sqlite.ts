@@ -1,18 +1,24 @@
-import type { KnowledgeDatabase } from ".";
+import type { KnowledgeDatabase, KnowledgeFile } from ".";
 import type { Site } from "../../../shared/types";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import * as schema from "../../db/sqlite/schema";
-import { and, count, eq, gt, lt, min } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import env from "../../utils/env";
 import { logStartupInfo } from "../../utils/log";
 import { Cron } from "croner";
 
-const { sites, rateLimitEntries } = schema;
+const { sites, knowledgeFiles } = schema;
 
 type DbSite = typeof sites.$inferSelect;
+type DbKnowledgeFile = typeof knowledgeFiles.$inferSelect;
+
+/** Map a Drizzle row (Date updatedAt) to the KnowledgeFile type (string updatedAt). */
+function knowledgeFileFromDb(row: DbKnowledgeFile): KnowledgeFile {
+  return { id: row.id, siteId: row.siteId, filename: row.filename, updatedAt: row.updatedAt.toISOString() };
+}
 
 /** Map a Drizzle row (Date createdAt) to the shared Site type (string createdAt). */
 function siteFromDb(row: DbSite): Site {
@@ -50,17 +56,43 @@ export async function createSqliteKnowledgeDatabase(): Promise<KnowledgeDatabase
 
   // Daily vacuum to minimize the database
   new Cron("@daily", () => db.run("VACUUM"));
-  // Delete stale rate limit entries (older than 60 s) to keep the table lean
-  new Cron("@daily", async () => {
-    const windowStart = new Date(Date.now() - 60_000);
-    await db
-      .delete(rateLimitEntries)
-      .where(lt(rateLimitEntries.createdAt, windowStart));
-  });
 
   // Build KnowledgeDatabase abstraction
 
   const database: KnowledgeDatabase = {
+    knowledgeFiles: {
+      getAll: async (siteId) => {
+        const rows = await db.query.knowledgeFiles.findMany({
+          where: eq(knowledgeFiles.siteId, siteId),
+        });
+        return rows.map(knowledgeFileFromDb);
+      },
+      upsert: async (siteId, filename) => {
+        const existing = await db.query.knowledgeFiles.findFirst({
+          where: and(eq(knowledgeFiles.siteId, siteId), eq(knowledgeFiles.filename, filename)),
+        });
+        if (existing) {
+          const [row] = await db
+            .update(knowledgeFiles)
+            .set({ updatedAt: new Date() })
+            .where(eq(knowledgeFiles.id, existing.id))
+            .returning();
+          return knowledgeFileFromDb(row);
+        }
+        const [row] = await db
+          .insert(knowledgeFiles)
+          .values({ siteId, filename })
+          .returning();
+        return knowledgeFileFromDb(row);
+      },
+      delete: async (id) => {
+        await db.delete(knowledgeFiles).where(eq(knowledgeFiles.id, id));
+      },
+      deleteAll: async (siteId) => {
+        await db.delete(knowledgeFiles).where(eq(knowledgeFiles.siteId, siteId));
+      },
+    },
+
     sites: {
       getAll: async () =>
         (await db.query.sites.findMany()).map(siteFromDb),
@@ -85,74 +117,11 @@ export async function createSqliteKnowledgeDatabase(): Promise<KnowledgeDatabase
         return result ? siteFromDb(result) : undefined;
       },
       delete: async (id) => {
+        await db.delete(knowledgeFiles).where(eq(knowledgeFiles.siteId, id));
         await db.delete(sites).where(eq(sites.id, id));
       },
     },
 
-    rateLimits: {
-      check: (ip, siteId, limitRpm) => {
-        const windowStart = new Date(Date.now() - 60_000);
-
-        return db.transaction(async (tx) => {
-          // 1. Evict stale entries for this bucket
-          await tx
-            .delete(rateLimitEntries)
-            .where(
-              and(
-                eq(rateLimitEntries.ip, ip),
-                eq(rateLimitEntries.siteId, siteId),
-                lt(rateLimitEntries.createdAt, windowStart),
-              ),
-            );
-
-          // 2. Count remaining entries in the window
-          const [{ value: currentCount }] = await tx
-            .select({ value: count() })
-            .from(rateLimitEntries)
-            .where(
-              and(
-                eq(rateLimitEntries.ip, ip),
-                eq(rateLimitEntries.siteId, siteId),
-                gt(rateLimitEntries.createdAt, windowStart),
-              ),
-            );
-
-          if (currentCount >= limitRpm) {
-            // 3a. Reject — find when the oldest entry in the window expires
-            const [oldest] = await tx
-              .select({ createdAt: min(rateLimitEntries.createdAt) })
-              .from(rateLimitEntries)
-              .where(
-                and(
-                  eq(rateLimitEntries.ip, ip),
-                  eq(rateLimitEntries.siteId, siteId),
-                  gt(rateLimitEntries.createdAt, windowStart),
-                ),
-              );
-            const oldestMs =
-              oldest?.createdAt instanceof Date
-                ? oldest.createdAt.getTime()
-                : Number(oldest?.createdAt ?? Date.now());
-            const resetInMs = Math.max(0, oldestMs + 60_000 - Date.now());
-            return { allowed: false, remaining: 0, resetInMs } as const;
-          }
-
-          // 3b. Allow — record this request
-          await tx
-            .insert(rateLimitEntries)
-            .values({ ip, siteId });
-
-          return { allowed: true, remaining: limitRpm - currentCount - 1 } as const;
-        });
-      },
-
-      cleanup: async () => {
-        const windowStart = new Date(Date.now() - 60_000);
-        await db
-          .delete(rateLimitEntries)
-          .where(lt(rateLimitEntries.createdAt, windowStart));
-      },
-    },
   };
   return database;
 }

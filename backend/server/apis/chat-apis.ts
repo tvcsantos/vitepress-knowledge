@@ -4,13 +4,11 @@ import { getKnowledgeFiles } from "../utils/knowledge-files";
 import { applySystemPromptTemplateVars } from "../utils/template-vars";
 import { ChatMessage, PostChatRequestBody } from "../../shared/types";
 import { decorateContextPlugin } from "../plugins/decorate-context-plugin";
-import { rateLimitPlugin } from "../plugins/rate-limit-plugin";
 import { siteToConfig } from "../utils/site-config";
 import z from "zod";
 
 export const chatApis = createApp({ prefix: "/chat" })
   .use(decorateContextPlugin)
-  .use(rateLimitPlugin)
   .post(
     "/",
     {
@@ -34,7 +32,7 @@ export const chatApis = createApp({ prefix: "/chat" })
       const response = await aiService.replyToConversation(
         model,
         async () => {
-          const knowledge = await getKnowledgeFiles(site.id, siteConfig.docsUrl);
+          const knowledge = await getKnowledgeFiles(site.id, siteConfig.docsUrl, db);
           return applySystemPromptTemplateVars(
             siteConfig.systemPrompt,
             knowledge.files.join("\n\n"),
@@ -69,7 +67,7 @@ export const chatApis = createApp({ prefix: "/chat" })
       }
 
       const getSystemPrompt = async () => {
-        const knowledge = await getKnowledgeFiles(site.id, siteConfig.docsUrl);
+        const knowledge = await getKnowledgeFiles(site.id, siteConfig.docsUrl, db);
         return applySystemPromptTemplateVars(
           siteConfig.systemPrompt,
           knowledge.files.join("\n\n"),

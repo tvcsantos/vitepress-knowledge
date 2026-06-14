@@ -1,6 +1,24 @@
 import type { Site, SiteInsert, SitePatch } from "../../../shared/types";
 
+export interface KnowledgeFile {
+  id: string;
+  siteId: string;
+  filename: string;
+  updatedAt: string;
+}
+
 export interface KnowledgeDatabase {
+  knowledgeFiles: {
+    /** Get all stored knowledge file metadata for a site. */
+    getAll: (siteId: string) => Promise<KnowledgeFile[]>;
+    /** Upsert a knowledge file metadata entry (insert or replace by siteId + filename). */
+    upsert: (siteId: string, filename: string) => Promise<KnowledgeFile>;
+    /** Delete a single knowledge file metadata entry by ID. */
+    delete: (id: string) => Promise<void>;
+    /** Delete all knowledge file metadata entries for a site. */
+    deleteAll: (siteId: string) => Promise<void>;
+  };
+
   sites: {
     /** Get all sites. */
     getAll: () => Promise<Site[]>;
@@ -16,23 +34,4 @@ export interface KnowledgeDatabase {
     delete: (id: Site["id"]) => Promise<void>;
   };
 
-  rateLimits: {
-    /**
-     * Sliding-window check for (ip, siteId).
-     * Deletes stale entries, counts the window, and inserts a new entry if allowed.
-     */
-    check: (
-      ip: string,
-      siteId: string,
-      limitRpm: number,
-    ) => Promise<KnowledgeDatabase.RateLimitResult>;
-    /** Delete all entries older than 60 s — called by daily cron. */
-    cleanup: () => Promise<void>;
-  };
-}
-
-export namespace KnowledgeDatabase {
-  export type RateLimitResult =
-    | { allowed: true; remaining: number }
-    | { allowed: false; remaining: 0; resetInMs: number };
 }

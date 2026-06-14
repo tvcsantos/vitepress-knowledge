@@ -13,9 +13,6 @@ export const Site = z
     assistantIconUrl: z.string().describe("URL to the assistant avatar icon."),
     systemPrompt: z.string().describe("System prompt template sent to the AI."),
     welcomeMessage: z.string().describe("Welcome message shown before first user message."),
-    rateLimitRpm: z.number().int().positive().nullable().describe(
-      "Max chat requests per minute per (IP, site). null = use server-wide RATE_LIMIT_RPM default.",
-    ),
     createdAt: z.string().datetime().describe("ISO 8601 creation timestamp."),
   })
   .meta({ ref: "Site" });

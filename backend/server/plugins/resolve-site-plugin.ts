@@ -2,7 +2,7 @@ import { container } from "../dependencies";
 import { siteToConfig, type SiteConfig } from "../utils/site-config";
 import type { Site } from "../../shared/types";
 
-// In-memory cache: siteId → SiteConfig (TTL 5 minutes)
+// In-memory cache: siteId -> SiteConfig (TTL 5 minutes)
 const siteCache = new Map<string, { config: SiteConfig; expiresAt: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 

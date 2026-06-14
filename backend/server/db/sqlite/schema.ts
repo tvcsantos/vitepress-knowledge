@@ -13,22 +13,22 @@ export const sites = sqliteTable("sites", {
   assistantIconUrl: text().notNull(),
   systemPrompt: text().notNull(),
   welcomeMessage: text().notNull(),
-  // null = fall back to global RATE_LIMIT_RPM env var
-  rateLimitRpm: int(),
   createdAt: int({ mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),
 });
 
-export const rateLimitEntries = sqliteTable(
-  "rate_limit_entries",
+export const knowledgeFiles = sqliteTable(
+  "knowledge_files",
   {
     id: text().primaryKey().$defaultFn(createId),
-    ip: text().notNull(),
     siteId: text().notNull(),
-    createdAt: int({ mode: "timestamp_ms" })
+    filename: text().notNull(),
+    updatedAt: int({ mode: "timestamp_ms" })
       .notNull()
       .$defaultFn(() => new Date()),
   },
-  (t) => [index("rate_limit_ip_site_created_idx").on(t.ip, t.siteId, t.createdAt)],
+  (t) => [index("knowledge_files_site_filename_idx").on(t.siteId, t.filename)],
 );
+
+

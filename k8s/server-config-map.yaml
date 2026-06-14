@@ -5,9 +5,6 @@ metadata:
 data:
   # --- Server ---
   PORT: "5174"
-  # Global default max chat requests per (IP, siteId) per minute.
-  # Override per site via PATCH /api/sites/:id { rateLimitRpm: N }.
-  RATE_LIMIT_RPM: "20"
 
   # --- Database ---
   DATABASE_TYPE: "sqlite"
@@ -18,16 +15,3 @@ data:
   LITELLM_BASE_URL: "http://localhost:4000"
   # Comma-separated model aliases: alias[:Display Name]
   LITELLM_MODELS: ""
-
-  # --- Gemini model toggles ---
-  GEMINI_FLASH_LATEST: "true"
-  GEMINI_PRO_LATEST: "false"
-  GEMINI_2_0_FLASH: "false"
-  GEMINI_2_5_FLASH: "false"
-  GEMINI_3_FLASH_PREVIEW: "false"
-  GEMINI_3_PRO_PREVIEW: "false"
-  GEMINI_3_1_PRO_PREVIEW: "false"
-
-  # --- Anthropic model toggles ---
-  CLAUDE_3_5_SONNET: "false"
-  CLAUDE_3_5_HAIKU: "false"
