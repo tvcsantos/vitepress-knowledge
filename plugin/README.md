@@ -8,14 +8,6 @@ pnpm i vitepress-knowledge
 
 Generate knowledge files for AI models to use. This plugin works by converting the final HTML files rendered by Vitepress back into markdown, then merging them into one (or more) files that is hosted on the production version of your website.
 
-## TODO
-
-- [x] Generate knowledge files
-- [x] Add tests for HTML &rarr; markdown conversion
-- [ ] Plugin system that allows for
-  - Generating more knowledge files based on other sources (discord, github, etc)
-  - Uploading knowledge files to to keep models up-to-date with your docs (OpenAI Assistants for example)
-
 ## Setup
 
 1. Extend the `knowledge` plugin:
@@ -27,10 +19,17 @@ Generate knowledge files for AI models to use. This plugin works by converting t
 
    export default defineConfig({
      extends: knowledge({
-       // Plugin config goes here...
+       // The URL where the backend server is hosted.
+       serverUrl: "https://chat.your-docs.com",
+       // The site's ID (created via the server's `POST /api/sites` admin API).
+       siteId: "your-site-id",
+       // ...other plugin config
      }),
    });
    ```
+
+   `serverUrl` + `siteId` add the "Ask AI" button and chat window to your site. If
+   you only want to generate knowledge files (no chat UI), you can omit `serverUrl`.
 
 2. Build your site:
 
