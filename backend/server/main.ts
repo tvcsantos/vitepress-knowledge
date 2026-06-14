@@ -26,7 +26,8 @@ const apiApp = new Hono()
   // site-apis and knowledge-apis both live under /sites
   .route("/sites", siteApis)
   .route("/sites", knowledgeApis)
-  .get("/health", (c) => c.body(null, 204));
+  // Returns 200 so the ALB health check (success-codes: 200) passes.
+  .get("/health", (c) => c.text("OK"));
 
 // Serve index.html with runtime template vars applied for the resolved site.
 async function serveSpa(c: import("hono").Context) {

@@ -1,5 +1,4 @@
 import markdownit from "markdown-it";
-import { fromHighlighter } from "@shikijs/markdown-it/core";
 import { createHighlighterCore, type HighlighterCore } from "shiki/core";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
 import { bundledLanguages } from "shiki/langs";
@@ -33,27 +32,44 @@ const ready = (async () => {
     langs: [],
     engine: createJavaScriptRegexEngine({ forgiving: true }),
   });
-  renderer.use(
-    // @ts-ignore: highlighter type error, but it works
-    fromHighlighter(highlighter, {
-      theme: THEME,
-      transformers: [
-        {
-          // The theme background conflicts with the message backgrounds, so we
-          // remove the custom background color and use Tailwind's. Only the
-          // text is affected by the theme.
-          name: "vitepress-knowledge:pre-background",
-          pre(node) {
-            delete node.properties.style;
-          },
-        },
-      ],
-      // @ts-ignore: "plaintext" is fine
-      fallbackLanguage: "plaintext",
-    }),
-  );
+  // Set the markdown-it highlight function ourselves (instead of using
+  // `@shikijs/markdown-it`'s `fromHighlighter`, which snapshots the set of loaded
+  // languages once at setup time and would never see lazily-loaded grammars).
+  // This checks the loaded grammars on every render.
+  renderer.options.highlight = highlightCode;
   notifyReady();
 })();
+
+/** Render a code block with Shiki, falling back to plaintext for unloaded/unknown languages. */
+function highlightCode(code: string, lang: string): string {
+  if (!highlighter) return "";
+  // Shiki appends a trailing newline; markdown-it already includes one.
+  if (code.endsWith("\n")) code = code.slice(0, -1);
+  const loaded =
+    !!lang && highlighter.getLoadedLanguages().includes(lang.toLowerCase());
+  return highlighter.codeToHtml(code, {
+    lang: loaded ? lang.toLowerCase() : "text",
+    theme: THEME,
+    transformers: [
+      {
+        // The theme background conflicts with the message backgrounds, so we
+        // remove the custom background color and use Tailwind's. Only the text
+        // is affected by the theme.
+        name: "vitepress-knowledge:pre-background",
+        pre(node) {
+          delete node.properties.style;
+        },
+      },
+      {
+        // Mirror markdown-it's default `language-*` class on the <code> element.
+        name: "vitepress-knowledge:block-class",
+        code(node) {
+          node.properties.class = `language-${lang || "text"}`;
+        },
+      },
+    ],
+  });
+}
 
 export function mdToHtml(md: string): string {
   return renderer.render(md);

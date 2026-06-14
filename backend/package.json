@@ -18,7 +18,6 @@
     "@iconify-json/svg-spinners": "^1.2.4",
     "@paralleldrive/cuid2": "^3.3.0",
     "@shikijs/langs": "^3.2.1",
-    "@shikijs/markdown-it": "^3.2.1",
     "@shikijs/themes": "^3.2.1",
     "@vueuse/core": "^14.2.1",
     "async-mutex": "^0.5.0",
