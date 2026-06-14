@@ -1,61 +1,36 @@
-export interface KnowledgeDatabase {
-  conversations: {
-    /** Get a conversation by its ID. */
-    get: (
-      id: KnowledgeDatabase.Conversation["id"],
-    ) => Promise<KnowledgeDatabase.ConversationWithMessages | undefined>;
-    /** Insert a conversation. */
-    insert: (
-      conversation: KnowledgeDatabase.ConversationInsert,
-    ) => Promise<KnowledgeDatabase.Conversation>;
-    /** Get or insert a conversation. */
-    getOrInsert: (
-      conversation: KnowledgeDatabase.ConversationInsert,
-    ) => Promise<KnowledgeDatabase.Conversation>;
-  };
+import type { Site, SiteInsert, SitePatch } from "../../../shared/types";
 
-  messages: {
-    /** Get a message by its ID. */
-    get: (
-      id: KnowledgeDatabase.Message["id"],
-    ) => Promise<KnowledgeDatabase.Message | undefined>;
-    /** Insert a message. */
-    insert: (
-      conversationId: KnowledgeDatabase.Conversation["id"],
-      message: KnowledgeDatabase.MessageInsert,
-    ) => Promise<KnowledgeDatabase.Message>;
-    /** Get or insert a message. */
-    getOrInsert: (
-      conversationId: KnowledgeDatabase.Conversation["id"],
-      message: KnowledgeDatabase.MessageInsert,
-    ) => Promise<KnowledgeDatabase.Message>;
-  };
+export interface KnowledgeFile {
+  id: string;
+  siteId: string;
+  filename: string;
+  updatedAt: string;
 }
 
-export namespace KnowledgeDatabase {
-  export type ConversationInsert = {
-    id?: string;
-  };
-  export type Conversation = {
-    id: string;
-    createdAt: Date;
-  };
-  export type ConversationWithMessagesInsert = ConversationInsert & {
-    messages: KnowledgeDatabase.MessageInsert[];
-  };
-  export type ConversationWithMessages = Conversation & {
-    messages: KnowledgeDatabase.Message[];
+export interface KnowledgeDatabase {
+  knowledgeFiles: {
+    /** Get all stored knowledge file metadata for a site. */
+    getAll: (siteId: string) => Promise<KnowledgeFile[]>;
+    /** Upsert a knowledge file metadata entry (insert or replace by siteId + filename). */
+    upsert: (siteId: string, filename: string) => Promise<KnowledgeFile>;
+    /** Delete a single knowledge file metadata entry by ID. */
+    delete: (id: string) => Promise<void>;
+    /** Delete all knowledge file metadata entries for a site. */
+    deleteAll: (siteId: string) => Promise<void>;
   };
 
-  export type MessageInsert = {
-    id?: string;
-    content: string;
-    role: "user" | "assistant";
-  };
-  export type Message = {
-    id: string;
-    content: string;
-    role: "user" | "assistant";
-    createdAt: Date;
+  sites: {
+    /** Get all sites. */
+    getAll: () => Promise<Site[]>;
+    /** Get the default site - only returns a value when exactly one site exists. */
+    getDefault: () => Promise<Site | undefined>;
+    /** Get a site by its ID. */
+    get: (id: Site["id"]) => Promise<Site | undefined>;
+    /** Insert a site. */
+    insert: (site: SiteInsert) => Promise<Site>;
+    /** Update a site by its ID. */
+    update: (id: Site["id"], patch: SitePatch) => Promise<Site | undefined>;
+    /** Delete a site by its ID. */
+    delete: (id: Site["id"]) => Promise<void>;
   };
 }

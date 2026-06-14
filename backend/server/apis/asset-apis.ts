@@ -1,38 +1,36 @@
-import { createApp } from "@aklinker1/zeta";
+import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 // @ts-expect-error: Ignore lack of declaration file
 import askAiJsTemplate from "../assets/ask-ai.js" with { type: "text" };
 import privacyPolicy from "../assets/privacy-policy.md" with { type: "text" };
 import { applyAppTemplateVars } from "../utils/template-vars.js";
-import dedent from "dedent";
-import z from "zod";
+import { siteToConfig } from "../utils/site-config";
+import { db } from "../dependencies";
 
-const js = applyAppTemplateVars(askAiJsTemplate as string);
+export const assetApis = new Hono()
+  .get("/ask-ai.js", async (c) => {
+    const siteId = c.req.query("siteId");
 
-export const assetApis = createApp()
-  .get(
-    "/ask-ai.js",
-    {
-      operationId: "getVitepressJs",
-      summary: "Get VitePress JS",
-      description: dedent`
-      Get the JavaScript responsible for adding the "Ask AI" button and chat window to your VitePress site.
+    // If no siteId is provided fall back to the first site (e.g. the default
+    // site seeded on first boot). This keeps the dev preview working without
+    // a ?siteId= param.
+    const site = siteId
+      ? await db.sites.get(siteId)
+      : await db.sites.getDefault();
 
-      \`\`\`html
-      <script defer async src="https://chat.mydocs.com/ask-ai.js"></script>
-      \`\`\`
-    `,
-      responses: z.string().meta({ contentType: "application/javascript" }),
-    },
-    () => js,
-  )
-  .get(
-    "/privacy-policy",
-    {
-      operationId: "getPrivacyPolicy",
-      responses: z.string().meta({ contentType: "text/markdown" }),
-      description: dedent`
-        The server hosts a copy of \`vitepress-knowledge\`'s privacy policy at this endpoint.
-      `,
-    },
-    () => privacyPolicy,
-  );
+    if (!site)
+      throw new HTTPException(404, {
+        message: siteId
+          ? `Site '${siteId}' not found`
+          : "siteId is required when multiple sites are configured",
+      });
+
+    c.header("Content-Type", "application/javascript");
+    return c.body(
+      applyAppTemplateVars(askAiJsTemplate as string, siteToConfig(site)),
+    );
+  })
+  .get("/privacy-policy", (c) => {
+    c.header("Content-Type", "text/markdown");
+    return c.body(privacyPolicy as string);
+  });

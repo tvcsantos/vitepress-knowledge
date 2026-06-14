@@ -3,6 +3,8 @@ import type { UserConfig } from "vitepress";
 export interface KnowledgeOptions<ThemeConfig> {
   /** When passed, show the "Ask AI" button and chat window. */
   serverUrl?: string;
+  /** Site ID to use for the "Ask AI" button. Required when serverUrl is set. */
+  siteId: string;
   /** Defaults to "knowledge", and your files will be available at `https://your-domain/knowledge/*` */
   dir?: string;
   /** Standard Vitepress `extends` to extend another config */

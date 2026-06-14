@@ -1,25 +1,41 @@
-import type { KnowledgeDatabase } from ".";
+import type { KnowledgeDatabase, KnowledgeFile } from ".";
+import type { Site } from "../../../shared/types";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import * as schema from "../../db/sqlite/schema";
-import { eq, lt, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import env from "../../utils/env";
-import { logStartupInfo } from "../../utils/log";
+import { createLogger } from "../../utils/logger";
 import { Cron } from "croner";
 
-const { messages, conversations } = schema;
+const log = createLogger("db");
+
+const { sites, knowledgeFiles } = schema;
+
+type DbSite = typeof sites.$inferSelect;
+type DbKnowledgeFile = typeof knowledgeFiles.$inferSelect;
+
+/** Map a Drizzle row (Date updatedAt) to the KnowledgeFile type (string updatedAt). */
+function knowledgeFileFromDb(row: DbKnowledgeFile): KnowledgeFile {
+  return {
+    id: row.id,
+    siteId: row.siteId,
+    filename: row.filename,
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+/** Map a Drizzle row (Date createdAt) to the shared Site type (string createdAt). */
+function siteFromDb(row: DbSite): Site {
+  return { ...row, createdAt: row.createdAt.toISOString() };
+}
 
 export async function createSqliteKnowledgeDatabase(): Promise<KnowledgeDatabase> {
   const file = env.DATABASE_SQLITE_PATH;
 
-  logStartupInfo("Database", [
-    [
-      { key: "type", value: "sqlite", color: "blue" },
-      { key: "path", value: file, color: "cyan" },
-    ],
-  ]);
+  log.info({ type: "sqlite", path: file }, "Opening database");
 
   await mkdir(dirname(file), { recursive: true });
   const db = drizzle(file, {
@@ -37,65 +53,79 @@ export async function createSqliteKnowledgeDatabase(): Promise<KnowledgeDatabase
     PRAGMA journal_mode = WAL;
     PRAGMA synchronous = NORMAL;
   `);
+  log.info("Database ready (migrations applied)");
 
   // Setup jobs
 
   // Daily vacuum to minimize the database
   new Cron("@daily", () => db.run("VACUUM"));
-  // Delete old conversations (30 days)
-  new Cron(
-    "@daily",
-    async () =>
-      await db
-        .delete(conversations)
-        .where(
-          lt(
-            sql`date(${conversations.createdAt})`,
-            sql`date('now', '-30 days')`,
-          ),
-        ),
-  );
 
   // Build KnowledgeDatabase abstraction
 
   const database: KnowledgeDatabase = {
-    conversations: {
-      get: (id: string) =>
-        db.query.conversations.findFirst({
-          where: eq(conversations.id, id),
-          with: { messages: true },
-        }),
-      insert: async (conversation) => {
-        const [result] = await db
-          .insert(conversations)
-          .values(conversation)
-          .returning();
-        return result;
+    knowledgeFiles: {
+      getAll: async (siteId) => {
+        const rows = await db.query.knowledgeFiles.findMany({
+          where: eq(knowledgeFiles.siteId, siteId),
+        });
+        return rows.map(knowledgeFileFromDb);
       },
-      getOrInsert: async (conversation) => {
-        if (conversation.id != null) {
-          const existing = await database.conversations.get(conversation.id);
-          if (existing) return existing;
+      upsert: async (siteId, filename) => {
+        const existing = await db.query.knowledgeFiles.findFirst({
+          where: and(
+            eq(knowledgeFiles.siteId, siteId),
+            eq(knowledgeFiles.filename, filename),
+          ),
+        });
+        if (existing) {
+          const [row] = await db
+            .update(knowledgeFiles)
+            .set({ updatedAt: new Date() })
+            .where(eq(knowledgeFiles.id, existing.id))
+            .returning();
+          return knowledgeFileFromDb(row);
         }
-        return await database.conversations.insert(conversation);
+        const [row] = await db
+          .insert(knowledgeFiles)
+          .values({ siteId, filename })
+          .returning();
+        return knowledgeFileFromDb(row);
+      },
+      delete: async (id) => {
+        await db.delete(knowledgeFiles).where(eq(knowledgeFiles.id, id));
+      },
+      deleteAll: async (siteId) => {
+        await db
+          .delete(knowledgeFiles)
+          .where(eq(knowledgeFiles.siteId, siteId));
       },
     },
-    messages: {
-      get: (id: string) =>
-        db.query.messages.findFirst({ where: eq(messages.id, id) }),
-      insert: async (conversationId, message) => {
-        const [result] = await db
-          .insert(messages)
-          .values({ conversationId, ...message })
-          .returning();
-        return result;
+
+    sites: {
+      getAll: async () => (await db.query.sites.findMany()).map(siteFromDb),
+      getDefault: async () => {
+        const rows = await db.query.sites.findMany({ limit: 2 });
+        return rows.length === 1 ? siteFromDb(rows[0]) : undefined;
       },
-      getOrInsert: async (conversationId, message) => {
-        if (message.id != null) {
-          const existing = await database.messages.get(message.id);
-          if (existing) return existing;
-        }
-        return await database.messages.insert(conversationId, message);
+      get: async (id) => {
+        const row = await db.query.sites.findFirst({ where: eq(sites.id, id) });
+        return row ? siteFromDb(row) : undefined;
+      },
+      insert: async (site) => {
+        const [result] = await db.insert(sites).values(site).returning();
+        return siteFromDb(result);
+      },
+      update: async (id, patch) => {
+        const [result] = await db
+          .update(sites)
+          .set(patch)
+          .where(eq(sites.id, id))
+          .returning();
+        return result ? siteFromDb(result) : undefined;
+      },
+      delete: async (id) => {
+        await db.delete(knowledgeFiles).where(eq(knowledgeFiles.siteId, id));
+        await db.delete(sites).where(eq(sites.id, id));
       },
     },
   };

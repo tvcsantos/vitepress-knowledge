@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vitepress-knowledge-server
+data:
+  # --- Server ---
+  PORT: "5174"
+  # Log level: trace | debug | info | warn | error | fatal | silent
+  LOG_LEVEL: "info"
+
+  # --- Database ---
+  DATABASE_TYPE: "sqlite"
+  DATABASE_SQLITE_PATH: "data/knowledge.db"
+
+  # --- LiteLLM sidecar ---
+  # Sidecar shares the pod network so localhost resolves directly.
+  LITELLM_BASE_URL: "http://localhost:4000"
+  # Comma-separated model aliases: alias[:Display Name]
+  LITELLM_MODELS: ""

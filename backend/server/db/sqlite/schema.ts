@@ -1,36 +1,32 @@
 import { index, int, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createId } from "@paralleldrive/cuid2";
-import { relations } from "drizzle-orm";
 
-export const conversations = sqliteTable("conversations", {
+export const sites = sqliteTable("sites", {
   id: text().primaryKey().$defaultFn(createId),
+  name: text().notNull(),
+  docsUrl: text().notNull(),
+  appName: text().notNull(),
+  brandColor: text().notNull(),
+  brandContentColor: text().notNull(),
+  serverUrl: text().notNull(),
+  corsOrigin: text().notNull(),
+  assistantIconUrl: text().notNull(),
+  systemPrompt: text().notNull(),
+  welcomeMessage: text().notNull(),
   createdAt: int({ mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),
 });
-export const conversationRelations = relations(conversations, ({ many }) => ({
-  messages: many(messages),
-}));
 
-export const messages = sqliteTable(
-  "messages",
+export const knowledgeFiles = sqliteTable(
+  "knowledge_files",
   {
     id: text().primaryKey().$defaultFn(createId),
-    conversationId: text()
-      .notNull()
-      .references(() => conversations.id, { onDelete: "cascade" }),
-    createdAt: int({ mode: "timestamp_ms" })
+    siteId: text().notNull(),
+    filename: text().notNull(),
+    updatedAt: int({ mode: "timestamp_ms" })
       .notNull()
       .$defaultFn(() => new Date()),
-    role: text({ enum: ["user", "assistant"] }).notNull(),
-    content: text().notNull(),
   },
-  (t) => [index("messages_conversation_id_idx").on(t.conversationId)],
+  (t) => [index("knowledge_files_site_filename_idx").on(t.siteId, t.filename)],
 );
-
-export const messageRelations = relations(messages, ({ one }) => ({
-  conversations: one(conversations, {
-    fields: [messages.conversationId],
-    references: [conversations.id],
-  }),
-}));

@@ -2,23 +2,72 @@
 
 Free, self-hosted LLM chatbot trained on your VitePress website.
 
-Try it out: https://wxt.dev
-
 ## Get Started
 
-It takes two steps to add an AI assistant to your VitePress website:
+It takes three steps to add an AI assistant to your VitePress website:
 
-1. Generate knowledge files based on your docs
-2. Self-host a light-weight server that sends chat messages to Google/Anthropic.
+1. Self-host the light-weight server (it talks to a LiteLLM proxy).
+2. Register a "site" on the server and (optionally) upload knowledge files.
+3. Add the plugin to your VitePress config, pointing it at the server + site.
 
-### Generate Knowledge Files
+### Run the Server
 
-Knowledge files are just your regular markdown documentation merged into one or more text files. LLMs use these files as their "knowledge" of your software.
+The server proxies chat requests to a [LiteLLM](https://docs.litellm.ai/docs/simple_proxy)
+proxy (so your model API keys stay off the website) and stores per-site config and
+knowledge files. Here's a Docker Compose example:
 
-Add the `vitepress-knowledge` NPM package to your project:
+```yml
+# compose.yml
+services:
+  backend:
+    image: ghcr.io/tvcsantos/vitepress-knowledge-server:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - /path/to/your/volume:/usr/src/app/data
+    environment:
+      # LiteLLM proxy (configure your model providers there)
+      LITELLM_BASE_URL: http://litellm:4000
+      LITELLM_API_KEY: sk-... # your LiteLLM proxy key
+      LITELLM_MODELS: gpt-4o-mini:GPT 4o Mini
+      # Protects the site/knowledge admin APIs
+      ADMIN_TOKEN: change-me # openssl rand -hex 32
+```
+
+See [`backend/README.md`](backend/README.md) for the full list of environment
+variables.
+
+### Register a Site
+
+Per-site configuration (branding, system prompt, CORS, etc.) lives in the server's
+database, not in env vars. Create a site via the admin API and note the returned
+`id` - that's your `siteId`:
 
 ```sh
-$ npm i -D vitepress-knowledge
+curl -X POST "https://chat.your-docs.com/api/sites" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-docs",
+    "appName": "My Docs",
+    "docsUrl": "https://your-docs.com",
+    "serverUrl": "https://chat.your-docs.com",
+    "corsOrigin": "https://your-docs.com",
+    "brandColor": "#00ADEF",
+    "brandContentColor": "#ffffff",
+    "assistantIconUrl": "https://your-docs.com/logo.svg",
+    "systemPrompt": "You are a documentation assistant for {{ APP_NAME }}.\n\n{{ KNOWLEDGE }}",
+    "welcomeMessage": "Hi! Ask me anything about **{{ APP_NAME }}**."
+  }'
+```
+
+### Add the Plugin
+
+Knowledge files are your markdown documentation merged into one or more text files
+that the LLM uses as its "knowledge". Add the `vitepress-knowledge` package:
+
+```bash
+npm i -D vitepress-knowledge
 ```
 
 ```ts
@@ -28,17 +77,23 @@ import knowledge from "vitepress-knowledge";
 
 export default defineConfig({
   extends: knowledge({
-    // This is the URL to where you'll host the server
+    // The URL where you host the server
     serverUrl: "https://chat.your-docs.com",
+    // The site id returned when you registered the site
+    siteId: "your-site-id",
   }),
 });
 ```
 
 Test to see if your knowledge files are being built correctly:
 
-```sh
-$ vitepress build docs
+```bash
+vitepress build docs
+```
 
+You should see output like this:
+
+```text
 vitepress v1.5.0
 
 ✓ building client + server bundles...
@@ -48,35 +103,9 @@ vitepress v1.5.0
 build complete in 2.57s.
 ```
 
-### Setup the Backend
-
-The backend provides two things:
-
-1. JS code for the "Ask AI" button and chat window
-2. Proxy requests to Google/Anthropic so you don't have to expose your API keys on your website.
-
-Here's an example Docker Compose file for spinning up the backend.
-
-```yml
-# compose.yml
-services:
-  backend:
-    image: aklinker1/vitepress-knowledge-server:latest
-    ports:
-      - "3000:3000"
-    volumes:
-      - /path/to/your/volume:/usr/src/app/data
-    environment:
-      APP_NAME: WXT
-      DOMAIN: chat.wxt.dev
-      DOCS_URL: https://wxt.dev
-      GOOGLE_API_KEY: your_google_api_key # Get an API key @ https://aistudio.google.com
-      GEMINI_2_0_FLASH: true
-      SYSTEM_PROMPT: |
-        You are a documentation assistant for "{{ APP_NAME }}" ({{ DOMAIN }}). Answer any questions based off your training knowledge below:
-
-        {{ KNOWLEDGE }}
-```
+Knowledge files are hosted on your production docs site at `/knowledge/*`. The
+server fetches them from your `docsUrl` automatically - or you can upload them to
+the server directly (see [`backend/README.md`](backend/README.md#knowledge-files-admin-api)).
 
 ---
 
@@ -84,5 +113,22 @@ And... that's it! Once deployed, you should have a working chat window on your d
 
 Checkout the plugin and server docs for more details and advanced configuration for each:
 
-- Plugin docs: [`plugin/README.md`](https://github.com/aklinker1/vitepress-knowledge/blob/main/plugin/README.md)
-- Server docs: [`backend/README.md`](https://github.com/aklinker1/vitepress-knowledge/blob/main/backend/README.md)
+- Plugin docs: [`plugin/README.md`](plugin/README.md)
+- Server docs: [`backend/README.md`](backend/README.md)
+
+## Kudos and Thanks
+
+A big thanks to [Aaron](https://github.com/aklinker1) for his work on the original [VitePress Knowledge](https://github.com/aklinker1/vitepress-knowledge) plugin. This project is a fork of his work, with some major refactors and improvements to make it more flexible and easier to use. Check out his original repo for more context and history on this project!
+
+## License
+
+This project is licensed under the MIT License - see the [License](LICENSE) file for
+details.
+
+## Contributing and Code of Conduct
+
+Please refer to our internal [Contribution Guidelines](CONTRIBUTING.md) for detailed information on how to propose
+changes, submit pull requests, and ensure a smooth collaboration process within the team. Also, don't forget to read and
+respect our established [Code of Conduct](CODE_OF_CONDUCT.md) in all your interactions and contributions.
+
+If you have any questions or require clarification on our internal guidelines, please reach out!

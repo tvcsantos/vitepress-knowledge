@@ -5,7 +5,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aklinker1/vitepress-knowledge.git"
+    "url": "git+https://github.com/tvcsantos/vitepress-knowledge.git"
   },
   "keywords": [
     "vitepress",
@@ -17,8 +17,8 @@
     "chat"
   ],
   "author": {
-    "name": "Aaron Klinker",
-    "email": "aaronklinker1+github@gmail.com"
+    "name": "Tiago Santos",
+    "email": "tvcantos@gmail.com"
   },
   "type": "module",
   "module": "dist/index.js",
@@ -33,6 +33,7 @@
   ],
   "scripts": {
     "build": "bun build src/index.ts --outfile=dist/index.js --target node --packages=external",
+    "check": "tsc --noEmit && publint",
     "prepublishOnly": "bun run build",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
@@ -45,7 +46,6 @@
     "yaml": "^2.7.0"
   },
   "devDependencies": {
-    "@aklinker1/check": "^2.4.0",
     "publint": "^0.3.1",
     "typescript": "^6.0.3",
     "vitepress": "^1.5.0"

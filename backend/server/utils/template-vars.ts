@@ -1,43 +1,41 @@
-import env from "./env";
+import type { SiteConfig } from "./site-config";
 
-export const WELCOME_MESSAGE_TEMPLATE_VARS = {
-  APP_NAME: env.APP_NAME,
-  ASSISTANT_ICON_URL: env.ASSISTANT_ICON_URL,
-  DOCS_URL: env.DOCS_URL,
-  SERVER_URL: env.SERVER_URL,
-};
+function welcomeMessageVars(site: SiteConfig) {
+  return {
+    APP_NAME: site.appName,
+    ASSISTANT_ICON_URL: site.assistantIconUrl,
+    DOCS_URL: site.docsUrl,
+    SERVER_URL: site.serverUrl,
+  };
+}
 
-export const APP_TEMPLATE_VARS = {
-  ...WELCOME_MESSAGE_TEMPLATE_VARS,
-  BRAND_COLOR: env.BRAND_COLOR,
-  BRAND_CONTENT_COLOR: env.BRAND_CONTENT_COLOR,
-  WELCOME_MESSAGE: env.WELCOME_MESSAGE,
-};
-
-export const SYSTEM_PROMPT_TEMPLATE_VARS = {
-  APP_NAME: env.APP_NAME,
-  ASSISTANT_ICON_URL: env.ASSISTANT_ICON_URL,
-  DOCS_URL: env.DOCS_URL,
-  SERVER_URL: env.SERVER_URL,
-  WELCOME_MESSAGE: env.WELCOME_MESSAGE,
-};
-
-export function applyAppTemplateVars(template: string): string {
+export function applyAppTemplateVars(
+  template: string,
+  site: SiteConfig,
+): string {
+  const welcomeVars = welcomeMessageVars(site);
+  // Derive <base href> from SERVER_URL pathname so relative assets resolve
+  // correctly under any context path at runtime.
+  // e.g. https://api.example.com/my-context/knowledge -> /my-context/knowledge/
+  const baseHref = new URL(site.serverUrl).pathname.replace(/\/?$/, "/");
   return applyTemplateVars(template, {
-    ...APP_TEMPLATE_VARS,
-    WELCOME_MESSAGE: applyTemplateVars(
-      APP_TEMPLATE_VARS.WELCOME_MESSAGE,
-      WELCOME_MESSAGE_TEMPLATE_VARS,
-    ),
+    ...welcomeVars,
+    BRAND_COLOR: site.brandColor,
+    BRAND_CONTENT_COLOR: site.brandContentColor,
+    WELCOME_MESSAGE: applyTemplateVars(site.welcomeMessage, welcomeVars),
+    SITE_ID: site.id,
+    BASE_HREF: baseHref,
   });
 }
 
 export function applySystemPromptTemplateVars(
   template: string,
   knowledge: string,
+  site: SiteConfig,
 ): string {
   return applyTemplateVars(template, {
-    ...SYSTEM_PROMPT_TEMPLATE_VARS,
+    ...welcomeMessageVars(site),
+    WELCOME_MESSAGE: site.welcomeMessage,
     KNOWLEDGE: knowledge,
   });
 }

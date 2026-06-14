@@ -12,3 +12,4 @@ declare var BRAND_CONTENT_COLOR: string;
 declare var DOCS_URL: string;
 declare var SERVER_URL: string;
 declare var WELCOME_MESSAGE: string;
+declare var SITE_ID: string;

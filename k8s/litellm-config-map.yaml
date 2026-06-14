@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vitepress-knowledge-litellm
+data:
+  # LiteLLM proxy model config - mirrors litellm.config.yaml.
+  # `os.environ/<NAME>` refs are resolved from the pod's environment
+  # (sourced from the vitepress-knowledge-server Secret).
+  # Docs: https://docs.litellm.ai/docs/proxy/configs
+  config.yaml: |
+    model_list:
+      - model_name: gpt-5.5
+        litellm_params:
+          model: azure/gpt-5.5
+          api_base: os.environ/AZURE_API_BASE
+          api_key: os.environ/AZURE_API_KEY
+          api_version: "2024-10-21"
+      - model_name: gpt-5.1
+        litellm_params:
+          model: azure/gpt-5.1
+          api_base: os.environ/AZURE_API_BASE
+          api_key: os.environ/AZURE_API_KEY
+          api_version: "2024-10-21"
+      - model_name: gpt-5-nano
+        litellm_params:
+          model: azure/gpt-5-nano
+          api_base: os.environ/AZURE_API_BASE
+          api_key: os.environ/AZURE_API_KEY
+          api_version: "2024-10-21"
+      - model_name: gpt-5-mini
+        litellm_params:
+          model: azure/gpt-5-mini
+          api_base: os.environ/AZURE_API_BASE
+          api_key: os.environ/AZURE_API_KEY
+          api_version: "2024-10-21"
+
+    litellm_settings:
+      drop_params: true
