@@ -1,6 +1,6 @@
 # VitePress Knowledge
 
-> This page only documents the NPM package options. [See this page to get started](https://github.com/aklinker1/vitepress-knowledge).
+> This page only documents the NPM package options. [See this page to get started](../README.md).
 
 ```sh
 pnpm i vitepress-knowledge

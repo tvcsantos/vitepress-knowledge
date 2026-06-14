@@ -20,7 +20,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: server
-          image: aklinker1/vitepress-knowledge-server:latest
+          image: ghcr.io/tvcsantos/vitepress-knowledge-server:latest
           ports:
             - name: http
               containerPort: 5174

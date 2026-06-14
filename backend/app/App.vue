@@ -303,7 +303,7 @@ async function openPrivacyPolicy() {
           <p class="opacity-70">Powered by</p>
           <a
             class="link"
-            href="https://github.com/aklinker1/vitepress-knowledge"
+            href="https://github.com/tvcsantos/vitepress-knowledge"
             target="_blank"
           >
             <i class="i-heroicons-bolt-16-solid size-4 -my-2" />

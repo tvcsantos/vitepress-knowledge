@@ -2,14 +2,12 @@
 
 Free, self-hosted LLM chatbot trained on your VitePress website.
 
-Try it out: https://wxt.dev
-
 ## Get Started
 
 It takes two steps to add an AI assistant to your VitePress website:
 
 1. Generate knowledge files based on your docs
-2. Self-host a light-weight server that sends chat messages to Google/Anthropic.
+2. Self-host a light-weight server that sends chat messages to LiteLLM.
 
 ### Generate Knowledge Files
 
@@ -17,8 +15,8 @@ Knowledge files are just your regular markdown documentation merged into one or 
 
 Add the `vitepress-knowledge` NPM package to your project:
 
-```sh
-$ npm i -D vitepress-knowledge
+```bash
+npm i -D vitepress-knowledge
 ```
 
 ```ts
@@ -36,9 +34,13 @@ export default defineConfig({
 
 Test to see if your knowledge files are being built correctly:
 
-```sh
-$ vitepress build docs
+```bash
+vitepress build docs
+```
 
+You should see output like this:
+
+```text
 vitepress v1.5.0
 
 ✓ building client + server bundles...
@@ -53,7 +55,7 @@ build complete in 2.57s.
 The backend provides two things:
 
 1. JS code for the "Ask AI" button and chat window
-2. Proxy requests to Google/Anthropic so you don't have to expose your API keys on your website.
+2. Proxy requests to LiteLLM so you don't have to expose your API keys on your website.
 
 Here's an example Docker Compose file for spinning up the backend.
 
@@ -61,7 +63,7 @@ Here's an example Docker Compose file for spinning up the backend.
 # compose.yml
 services:
   backend:
-    image: aklinker1/vitepress-knowledge-server:latest
+    image: ghcr.io/tvcsantos/vitepress-knowledge-server:latest
     ports:
       - "3000:3000"
     volumes:
@@ -84,5 +86,22 @@ And... that's it! Once deployed, you should have a working chat window on your d
 
 Checkout the plugin and server docs for more details and advanced configuration for each:
 
-- Plugin docs: [`plugin/README.md`](https://github.com/aklinker1/vitepress-knowledge/blob/main/plugin/README.md)
-- Server docs: [`backend/README.md`](https://github.com/aklinker1/vitepress-knowledge/blob/main/backend/README.md)
+- Plugin docs: [`plugin/README.md`](plugin/README.md)
+- Server docs: [`backend/README.md`](backend/README.md)
+
+## Kudos and Thanks
+
+A big thanks to [Aaron](https://github.com/aklinker1) for his work on the original [VitePress Knowledge](https://github.com/aklinker1/vitepress-knowledge) plugin. This project is a fork of his work, with some major refactors and improvements to make it more flexible and easier to use. Check out his original repo for more context and history on this project!
+
+## License
+
+This project is licensed under the MIT License - see the [License](LICENSE) file for
+details.
+
+## Contributing and Code of Conduct
+
+Please refer to our internal [Contribution Guidelines](CONTRIBUTING.md) for detailed information on how to propose
+changes, submit pull requests, and ensure a smooth collaboration process within the team. Also, don't forget to read and
+respect our established [Code of Conduct](CODE_OF_CONDUCT.md) in all your interactions and contributions.
+
+If you have any questions or require clarification on our internal guidelines, please reach out!

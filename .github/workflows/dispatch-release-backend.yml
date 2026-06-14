@@ -1,4 +1,5 @@
-name: Release Backend
+name: Release Backend (Manual)
+
 on:
   workflow_dispatch:
     inputs:
@@ -10,20 +11,25 @@ on:
 
 jobs:
   validate:
-    name: Validate
-    uses: ./.github/workflows/validate.yml
+    name: Build and Validate
+    uses: ./.github/workflows/reusable-build-validate.yml
 
   release:
     name: Release
     needs: validate
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - uses: ./.github/actions/setup
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - run: bun install --frozen-lockfile
+        shell: bash
 
       - name: Configure Git
         run: |
@@ -45,27 +51,3 @@ jobs:
           git tag "backend-v${{ steps.version.outputs.version }}"
           git push
           git push --tags
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push Docker images
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            aklinker1/vitepress-knowledge-server:latest
-            aklinker1/vitepress-knowledge-server:${{ steps.version.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max

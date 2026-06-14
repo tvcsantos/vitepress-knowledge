@@ -5,7 +5,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aklinker1/vitepress-knowledge.git"
+    "url": "git+https://github.com/tvcsantos/vitepress-knowledge.git"
   },
   "keywords": [
     "vitepress",
@@ -17,8 +17,8 @@
     "chat"
   ],
   "author": {
-    "name": "Aaron Klinker",
-    "email": "aaronklinker1+github@gmail.com"
+    "name": "Tiago Santos",
+    "email": "tvcantos@gmail.com"
   },
   "type": "module",
   "module": "dist/index.js",

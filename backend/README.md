@@ -1,6 +1,6 @@
 # VitePress Knowledge Server
 
-> This page only documents the Server options. [See this page to get started](https://github.com/aklinker1/vitepress-knowledge).
+> This page only documents the Server options. [See this page to get started](../README.md).
 
 ## Environment Variables
 
@@ -45,6 +45,6 @@ enabled models from all configured providers show up in the picker.
 
 ## Hosting
 
-To host the backend, you can use docker like the [Setup guide does](https://github.com/aklinker1/vitepress-knowledge#setup), or clone down the repo and run the `server/src/main.ts` file yourself.
+To host the backend, you can use docker like the [Setup guide does](../README.md#setup-the-backend), or clone down the repo and run the `server/src/main.ts` file yourself.
 
 The `server/Dockerfile` contains the minimal set of build instructions to run the backend.
