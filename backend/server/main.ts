@@ -49,7 +49,8 @@ const app = createApp({
       const entry = aframe.static?.["fallback"] ?? aframe.static?.["/"];
       const file = entry?.file ?? Bun.file(`${aframe.publicDir}/index.html`);
       const html = await file.text();
-      if (!site) return new Response(html, { headers: { "content-type": "text/html" } });
+      if (!site)
+        return new Response(html, { headers: { "content-type": "text/html" } });
       return new Response(applyAppTemplateVars(html, siteToConfig(site)), {
         headers: { "content-type": "text/html" },
       });

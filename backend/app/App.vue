@@ -89,7 +89,10 @@ const sendMessage = async () => {
 
     const userMessage: ChatMessage = { role: "user", content };
     const assistantMessage: ChatMessage = { role: "assistant", content: "" };
-    const newThreadMessages: ChatMessage[] = [...oldThreadMessages, userMessage];
+    const newThreadMessages: ChatMessage[] = [
+      ...oldThreadMessages,
+      userMessage,
+    ];
     threadMessages.value = [...newThreadMessages];
 
     const res = await fetch(`${SERVER_URL}/api/chat/stream`, {
@@ -121,8 +124,10 @@ const sendMessage = async () => {
         const data = JSON.parse(line.slice(5).trim());
         if (typeof data === "string") {
           assistantMessage.content += data;
-          threadMessages.value = [...newThreadMessages, { ...assistantMessage }];
-
+          threadMessages.value = [
+            ...newThreadMessages,
+            { ...assistantMessage },
+          ];
         } else if (data.done) {
           threadMessages.value = data.messages;
         } else if (data.error) {
@@ -215,13 +220,20 @@ async function openPrivacyPolicy() {
         class="absolute inset-0 overflow-y-auto p-4 prose prose-sm prose-invert max-w-none"
         v-html="privacyPolicyHtml"
       />
-      <div v-else ref="scrollContainer" class="absolute inset-0 overflow-y-auto p-4">
+      <div
+        v-else
+        ref="scrollContainer"
+        class="absolute inset-0 overflow-y-auto p-4"
+      >
         <MessageList :messages show-top-links :loading />
       </div>
     </div>
 
     <div class="shrink-0 m-2 flex flex-col gap-2">
-      <div v-if="error && !showPrivacyPolicy" class="bg-(--c-warning)/20 rounded p-4 flex gap-4">
+      <div
+        v-if="error && !showPrivacyPolicy"
+        class="bg-(--c-warning)/20 rounded p-4 flex gap-4"
+      >
         <i class="text-(--c-warning) i-heroicons-exclaimation-triangle" />
         <p class="flex-1">
           {{ (error.cause as Error | undefined)?.message ?? error?.message }}

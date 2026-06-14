@@ -31,7 +31,7 @@ its own knowledge source, branding, system prompt, and conversation history.
 
 ### 3. Per-site config — extract a `SiteConfig` value type
 
-- **`backend/server/utils/site-config.ts`** *(new)* — defines the `SiteConfig`
+- **`backend/server/utils/site-config.ts`** _(new)_ — defines the `SiteConfig`
   type holding all per-site fields currently in `env`: `docsUrl`, `appName`,
   `brandColor`, `brandContentColor`, `serverUrl`, `corsOrigin`,
   `assistantIconUrl`, `systemPrompt`, `welcomeMessage`.
@@ -74,7 +74,7 @@ its own knowledge source, branding, system prompt, and conversation history.
 
 ### 9. Middleware — resolve site from request
 
-- **`backend/server/plugins/resolve-site-plugin.ts`** *(new)* — reads `siteId`
+- **`backend/server/plugins/resolve-site-plugin.ts`** _(new)_ — reads `siteId`
   from the JSON request body (POST) or `X-Site-ID` header (GET); loads the site
   record from DB (with in-memory LRU/TTL cache); injects it as `siteConfig` in
   request context; returns HTTP 404 if not found.
@@ -92,14 +92,15 @@ its own knowledge source, branding, system prompt, and conversation history.
 
 ### 12. New site management API
 
-- **`backend/server/apis/site-apis.ts`** *(new)* — CRUD REST endpoints under
+- **`backend/server/apis/site-apis.ts`** _(new)_ — CRUD REST endpoints under
   `/api/sites`:
-  - `GET    /api/sites`       — list all sites
-  - `POST   /api/sites`       — create a site
-  - `GET    /api/sites/:id`   — get a site
-  - `PATCH  /api/sites/:id`   — update a site
-  - `DELETE /api/sites/:id`   — delete a site
-  
+
+  - `GET    /api/sites` — list all sites
+  - `POST   /api/sites` — create a site
+  - `GET    /api/sites/:id` — get a site
+  - `PATCH  /api/sites/:id` — update a site
+  - `DELETE /api/sites/:id` — delete a site
+
   Protected by a shared admin token env var (`ADMIN_TOKEN`).
 
 ### 13. Update `chat-apis.ts`
@@ -122,7 +123,7 @@ its own knowledge source, branding, system prompt, and conversation history.
 
 ### 16. Default site seed — backward-compatible bootstrap
 
-- **`backend/server/utils/seed-default-site.ts`** *(new)* or inside
+- **`backend/server/utils/seed-default-site.ts`** _(new)_ or inside
   `dependencies.ts` — on startup, if no sites exist in the DB, insert a
   "default" site populated from the existing env var values. This ensures
   existing single-site deployments keep working with zero config changes.
@@ -140,32 +141,32 @@ its own knowledge source, branding, system prompt, and conversation history.
 
 ## Files to Modify
 
-| File | Change |
-|---|---|
-| `backend/server/db/sqlite/schema.ts` | Add `sites` table; add nullable `siteId` FK to `conversations` |
-| `backend/shared/types.ts` | Add `Site` type; add `siteId` to `PostChatRequestBody` |
-| `backend/server/utils/env.ts` | Remove single-site fields; keep as defaults for seed |
-| `backend/server/utils/knowledge-files.ts` | Per-site cache keyed by `siteId` |
-| `backend/server/utils/template-vars.ts` | Accept `SiteConfig` instead of global `env` |
-| `backend/server/services/knowledge-database/index.ts` | Add `sites` CRUD interface |
-| `backend/server/services/knowledge-database/sqlite.ts` | Implement sites CRUD; scope conversations by `siteId` |
-| `backend/server/services/conversation-service.ts` | Pass `siteId` through |
-| `backend/server/plugins/cors-plugin.ts` | Use `siteConfig.corsOrigin` |
-| `backend/server/plugins/decorate-context-plugin.ts` | Inject `siteConfig` |
-| `backend/server/apis/chat-apis.ts` | Use `siteConfig` throughout |
-| `backend/server/apis/asset-apis.ts` | Per-site template vars via `?siteId=` |
-| `backend/server/main.ts` | Register new plugin & site APIs |
-| `k8s/backend-configmap.yaml` | Remove site-specific env vars (keep as optional seed defaults) |
-| `k8s/backend-secret.yaml` | Add `ADMIN_TOKEN` |
+| File                                                   | Change                                                         |
+| ------------------------------------------------------ | -------------------------------------------------------------- |
+| `backend/server/db/sqlite/schema.ts`                   | Add `sites` table; add nullable `siteId` FK to `conversations` |
+| `backend/shared/types.ts`                              | Add `Site` type; add `siteId` to `PostChatRequestBody`         |
+| `backend/server/utils/env.ts`                          | Remove single-site fields; keep as defaults for seed           |
+| `backend/server/utils/knowledge-files.ts`              | Per-site cache keyed by `siteId`                               |
+| `backend/server/utils/template-vars.ts`                | Accept `SiteConfig` instead of global `env`                    |
+| `backend/server/services/knowledge-database/index.ts`  | Add `sites` CRUD interface                                     |
+| `backend/server/services/knowledge-database/sqlite.ts` | Implement sites CRUD; scope conversations by `siteId`          |
+| `backend/server/services/conversation-service.ts`      | Pass `siteId` through                                          |
+| `backend/server/plugins/cors-plugin.ts`                | Use `siteConfig.corsOrigin`                                    |
+| `backend/server/plugins/decorate-context-plugin.ts`    | Inject `siteConfig`                                            |
+| `backend/server/apis/chat-apis.ts`                     | Use `siteConfig` throughout                                    |
+| `backend/server/apis/asset-apis.ts`                    | Per-site template vars via `?siteId=`                          |
+| `backend/server/main.ts`                               | Register new plugin & site APIs                                |
+| `k8s/backend-configmap.yaml`                           | Remove site-specific env vars (keep as optional seed defaults) |
+| `k8s/backend-secret.yaml`                              | Add `ADMIN_TOKEN`                                              |
 
 ## New Files
 
-| File | Purpose |
-|---|---|
-| `backend/server/utils/site-config.ts` | `SiteConfig` type definition |
-| `backend/server/plugins/resolve-site-plugin.ts` | Per-request site resolution middleware |
-| `backend/server/apis/site-apis.ts` | CRUD REST endpoints for `/api/sites` |
-| `backend/server/utils/seed-default-site.ts` | Seed default site from env vars on first boot |
+| File                                            | Purpose                                       |
+| ----------------------------------------------- | --------------------------------------------- |
+| `backend/server/utils/site-config.ts`           | `SiteConfig` type definition                  |
+| `backend/server/plugins/resolve-site-plugin.ts` | Per-request site resolution middleware        |
+| `backend/server/apis/site-apis.ts`              | CRUD REST endpoints for `/api/sites`          |
+| `backend/server/utils/seed-default-site.ts`     | Seed default site from env vars on first boot |
 
 ---
 
@@ -219,6 +220,7 @@ default from an env var. Exceeding the limit returns HTTP 429 with a
 ## Algorithm — sliding window counter
 
 For each `(ip, siteId)` bucket:
+
 1. Delete all entries older than 60 seconds.
 2. Count remaining entries.
 3. If `count >= limit` → reject with 429.
@@ -235,6 +237,7 @@ enabled).
 ### 1. DB schema — add `rate_limit_entries` table
 
 - **`backend/server/db/sqlite/schema.ts`** — add:
+
   ```ts
   rate_limit_entries {
     id:        text  PK (CUID2)
@@ -245,6 +248,7 @@ enabled).
     INDEX: (ip, siteId, createdAt)
   }
   ```
+
 - Run `bun run gen` to generate the migration.
 
 ### 2. Site schema — add `rateLimitRpm` field
@@ -264,10 +268,14 @@ enabled).
 
 ### 4. Rate limit service
 
-- **`backend/server/services/rate-limit-service.ts`** *(new)* — exposes:
+- **`backend/server/services/rate-limit-service.ts`** _(new)_ — exposes:
   ```ts
   interface RateLimitService {
-    check(ip: string, siteId: string, limitRpm: number): Promise<{
+    check(
+      ip: string,
+      siteId: string,
+      limitRpm: number,
+    ): Promise<{
       allowed: boolean;
       remaining: number;
       resetInMs: number;
@@ -298,8 +306,9 @@ enabled).
 
 ### 6. Rate limit plugin
 
-- **`backend/server/plugins/rate-limit-plugin.ts`** *(new)* — a Zeta plugin
+- **`backend/server/plugins/rate-limit-plugin.ts`** _(new)_ — a Zeta plugin
   applied only to chat routes:
+
   ```ts
   export const rateLimitPlugin = createApp()
     .onGlobalRequest(async ({ request }) => {
@@ -346,20 +355,20 @@ enabled).
 
 ## Files to Modify
 
-| File | Change |
-|---|---|
-| `backend/server/db/sqlite/schema.ts` | Add `rateLimitEntries` table; add `rateLimitRpm` to `sites` |
-| `backend/shared/types.ts` | Add `rateLimitRpm` field to `Site` |
-| `backend/server/utils/env.ts` | Add `RATE_LIMIT_RPM` global default |
-| `backend/server/services/knowledge-database/index.ts` | Add `rateLimits` namespace |
-| `backend/server/services/knowledge-database/sqlite.ts` | Implement `rateLimits`; add cleanup cron |
-| `backend/server/apis/chat-apis.ts` | Add `.use(rateLimitPlugin)` |
-| `k8s/backend-configmap.yaml` | Add `RATE_LIMIT_RPM` |
+| File                                                   | Change                                                      |
+| ------------------------------------------------------ | ----------------------------------------------------------- |
+| `backend/server/db/sqlite/schema.ts`                   | Add `rateLimitEntries` table; add `rateLimitRpm` to `sites` |
+| `backend/shared/types.ts`                              | Add `rateLimitRpm` field to `Site`                          |
+| `backend/server/utils/env.ts`                          | Add `RATE_LIMIT_RPM` global default                         |
+| `backend/server/services/knowledge-database/index.ts`  | Add `rateLimits` namespace                                  |
+| `backend/server/services/knowledge-database/sqlite.ts` | Implement `rateLimits`; add cleanup cron                    |
+| `backend/server/apis/chat-apis.ts`                     | Add `.use(rateLimitPlugin)`                                 |
+| `k8s/backend-configmap.yaml`                           | Add `RATE_LIMIT_RPM`                                        |
 
 ## New Files
 
-| File | Purpose |
-|---|---|
+| File                                          | Purpose                                                    |
+| --------------------------------------------- | ---------------------------------------------------------- |
 | `backend/server/plugins/rate-limit-plugin.ts` | Global request hook that enforces the sliding-window limit |
 
 ---
@@ -407,13 +416,13 @@ should replace the hand-rolled sliding-window counter in
 
 ### Candidates evaluated
 
-| Library | Weekly DL | Stars | SQLite support | Bun-native | Notes |
-|---|---|---|---|---|---|
-| **rate-limiter-flexible** | 2.4 M | 3.5 k | `RateLimiterSQLite` (sqlite3 / better-sqlite3 / knex) | ✅ compatible | Zero deps, most mature, supports fixed + sliding window, blocking strategy, insurance strategy |
-| **@joint-ops/hitlimit-bun** | small (new) | — | `bun:sqlite` store | ✅ native | 18 KB, zero deps, 372 K ops/s with SQLite; very new/untested |
-| **@upstash/ratelimit** | growing | — | ❌ requires Upstash Redis | ✅ compatible | Cloud service, not suitable without Redis |
-| **rolling-rate-limiter** | 81 K | — | ❌ in-memory or Redis only | ✅ compatible | No SQLite store |
-| **bottleneck** | 10.5 M | — | ❌ Redis optional | ✅ compatible | Task scheduler, overkill for HTTP rate limiting |
+| Library                     | Weekly DL   | Stars | SQLite support                                        | Bun-native    | Notes                                                                                          |
+| --------------------------- | ----------- | ----- | ----------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------- |
+| **rate-limiter-flexible**   | 2.4 M       | 3.5 k | `RateLimiterSQLite` (sqlite3 / better-sqlite3 / knex) | ✅ compatible | Zero deps, most mature, supports fixed + sliding window, blocking strategy, insurance strategy |
+| **@joint-ops/hitlimit-bun** | small (new) | —     | `bun:sqlite` store                                    | ✅ native     | 18 KB, zero deps, 372 K ops/s with SQLite; very new/untested                                   |
+| **@upstash/ratelimit**      | growing     | —     | ❌ requires Upstash Redis                             | ✅ compatible | Cloud service, not suitable without Redis                                                      |
+| **rolling-rate-limiter**    | 81 K        | —     | ❌ in-memory or Redis only                            | ✅ compatible | No SQLite store                                                                                |
+| **bottleneck**              | 10.5 M      | —     | ❌ Redis optional                                     | ✅ compatible | Task scheduler, overkill for HTTP rate limiting                                                |
 
 ### Why `rate-limiter-flexible` was not adopted
 
@@ -431,6 +440,7 @@ as `storeClient` — neither is the same as `bun:sqlite` (used by
 ### Why the hand-rolled implementation was kept
 
 The current implementation is ~60 lines of Drizzle code that:
+
 - fits neatly into the existing schema and migration system
 - reuses the same `bun:sqlite` connection managed by Drizzle
 - performs a single atomic transaction (delete stale → count → insert)

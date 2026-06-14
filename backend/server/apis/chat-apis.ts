@@ -1,4 +1,8 @@
-import { BadRequestHttpError, NotFoundHttpError, createApp } from "@aklinker1/zeta";
+import {
+  BadRequestHttpError,
+  NotFoundHttpError,
+  createApp,
+} from "@aklinker1/zeta";
 import dedent from "dedent";
 import { getKnowledgeFiles } from "../utils/knowledge-files";
 import { applySystemPromptTemplateVars } from "../utils/template-vars";
@@ -32,7 +36,11 @@ export const chatApis = createApp({ prefix: "/chat" })
       const response = await aiService.replyToConversation(
         model,
         async () => {
-          const knowledge = await getKnowledgeFiles(site.id, siteConfig.docsUrl, db);
+          const knowledge = await getKnowledgeFiles(
+            site.id,
+            siteConfig.docsUrl,
+            db,
+          );
           return applySystemPromptTemplateVars(
             siteConfig.systemPrompt,
             knowledge.files.join("\n\n"),
@@ -67,7 +75,11 @@ export const chatApis = createApp({ prefix: "/chat" })
       }
 
       const getSystemPrompt = async () => {
-        const knowledge = await getKnowledgeFiles(site.id, siteConfig.docsUrl, db);
+        const knowledge = await getKnowledgeFiles(
+          site.id,
+          siteConfig.docsUrl,
+          db,
+        );
         return applySystemPromptTemplateVars(
           siteConfig.systemPrompt,
           knowledge.files.join("\n\n"),
@@ -103,9 +115,7 @@ export const chatApis = createApp({ prefix: "/chat" })
             const message =
               err instanceof Error ? err.message : "Unknown error";
             controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ error: message })}\n\n`,
-              ),
+              encoder.encode(`data: ${JSON.stringify({ error: message })}\n\n`),
             );
           } finally {
             controller.close();

@@ -14,7 +14,9 @@ function applyTemplateVars(): Plugin {
     name: "backend:apply-template-vars",
     async transformIndexHtml(html) {
       try {
-        const res = await fetch(`http://localhost:${SERVER_PORT}/api/sites/default`);
+        const res = await fetch(
+          `http://localhost:${SERVER_PORT}/api/sites/default`,
+        );
         if (res.ok) {
           const site = await res.json();
           if (site) return applyAppTemplateVars(html, siteToConfig(site));

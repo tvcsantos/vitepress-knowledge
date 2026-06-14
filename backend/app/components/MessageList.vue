@@ -25,5 +25,4 @@ const showSpinner = computed(() => {
       <i class="i-svg-spinners-3-dots-bounce" />
     </li>
   </ul>
-
 </template>

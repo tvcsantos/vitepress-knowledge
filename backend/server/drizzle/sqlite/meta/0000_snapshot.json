@@ -133,10 +133,7 @@
       "indexes": {
         "knowledge_files_site_filename_idx": {
           "name": "knowledge_files_site_filename_idx",
-          "columns": [
-            "site_id",
-            "filename"
-          ],
+          "columns": ["site_id", "filename"],
           "isUnique": false
         }
       },

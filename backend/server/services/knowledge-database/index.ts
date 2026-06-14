@@ -33,5 +33,4 @@ export interface KnowledgeDatabase {
     /** Delete a site by its ID. */
     delete: (id: Site["id"]) => Promise<void>;
   };
-
 }

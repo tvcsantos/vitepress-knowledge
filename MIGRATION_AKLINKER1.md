@@ -13,12 +13,12 @@ Dependencies to remove:
 
 ## Current usage map
 
-| Package | Where it's used |
-|---|---|
-| `@aklinker1/check` | `package.json`, `backend/package.json`, `plugin/package.json` (`check` script) |
-| `@aklinker1/zero-ioc` | `backend/server/dependencies.ts` |
-| `@aklinker1/zeta` | `backend/server/main.ts`, all `backend/server/apis/*.ts`, all `backend/server/plugins/*.ts`, `backend/server/services/ai-service/litellm.ts`, `backend/app/utils/api-client.ts` |
-| `@aklinker1/aframe` | `backend/aframe.config.ts`, `backend/server/main.ts` (`fetchStatic`, `globalThis.aframe`), `backend/server/env.d.ts`, `backend/package.json` scripts |
+| Package               | Where it's used                                                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@aklinker1/check`    | `package.json`, `backend/package.json`, `plugin/package.json` (`check` script)                                                                                                  |
+| `@aklinker1/zero-ioc` | `backend/server/dependencies.ts`                                                                                                                                                |
+| `@aklinker1/zeta`     | `backend/server/main.ts`, all `backend/server/apis/*.ts`, all `backend/server/plugins/*.ts`, `backend/server/services/ai-service/litellm.ts`, `backend/app/utils/api-client.ts` |
+| `@aklinker1/aframe`   | `backend/aframe.config.ts`, `backend/server/main.ts` (`fetchStatic`, `globalThis.aframe`), `backend/server/env.d.ts`, `backend/package.json` scripts                            |
 
 ### How the pieces fit together (important)
 
@@ -56,6 +56,7 @@ Each phase ends in a buildable, runnable state and an independent commit.
 `check` script in each package.
 
 **Steps**
+
 1. Determine what `check` runs today (TS type-check across `backend`, `plugin`, root).
 2. Replace each `"check"` script:
    - Backend (Vue + TS): `"check": "vue-tsc --noEmit -p tsconfig.json"`
@@ -76,16 +77,16 @@ Each phase ends in a buildable, runnable state and an independent commit.
 — a lazy singleton registry holding exactly **2 dependencies**: `db` and `aiService`.
 Defined in `dependencies.ts` and consumed in 4 places:
 
-| File | Current usage |
-|---|---|
-| `decorate-context-plugin.ts` | `.decorate(container.resolveAll())` |
-| `cors-plugin.ts` | `const { db } = container.resolveAll()` |
-| `resolve-site-plugin.ts` | `const { db } = container.resolveAll()` (note: `resolveSite()` is **dead code** — exported, never called; delete it) |
-| `main.ts` | `const db = container.resolve("db")` |
+| File                         | Current usage                                                                                                        |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `decorate-context-plugin.ts` | `.decorate(container.resolveAll())`                                                                                  |
+| `cors-plugin.ts`             | `const { db } = container.resolveAll()`                                                                              |
+| `resolve-site-plugin.ts`     | `const { db } = container.resolveAll()` (note: `resolveSite()` is **dead code** — exported, never called; delete it) |
+| `main.ts`                    | `const db = container.resolve("db")`                                                                                 |
 
 **Decision:** for 2 eagerly-created startup singletons, an IoC container adds indirection
 without benefit. ES modules are already a singleton registry (module instances are cached),
-so replace the container with **plain module-level exports**. This adds *zero* new
+so replace the container with **plain module-level exports**. This adds _zero_ new
 dependencies (adding Awilix would be adding a dependency to remove one) and is fully
 bundler-safe for Phase 4's `Bun.build`.
 
@@ -104,28 +105,32 @@ export const deps = { db, aiService };
 ```
 
 ### Steps
+
 1. Rewrite `dependencies.ts` as above (drop `createIocContainer`).
 2. Update the 4 consumer sites:
    - `decorate-context-plugin.ts`: `.decorate(container.resolveAll())` → `.decorate(deps)`.
    - `cors-plugin.ts`: replace `const { db } = container.resolveAll()` with
      `import { db } from "../dependencies"`.
-   - `resolve-site-plugin.ts`: same import swap — *or* delete `resolveSite()` entirely since
+   - `resolve-site-plugin.ts`: same import swap — _or_ delete `resolveSite()` entirely since
      it's unused (preferred; removes the edit).
    - `main.ts`: `const db = container.resolve("db")` → `import { db } from "./dependencies"`.
 3. Remove `@aklinker1/zero-ioc` from `backend/package.json`.
 
 ### Testability note
+
 Without a container, swap dependencies in tests via Bun's `mock.module("./dependencies", …)`,
 or by passing collaborators into the service factories directly. Neither requires a DI lib.
 
 ### Fallback: Awilix (only if the dependency graph grows)
+
 If services multiply or you need per-request scoping / runtime-swappable implementations,
 adopt **Awilix** (well-known, no decorators, no `reflect-metadata`, zero Bun config):
+
 - `bun add awilix`; build a container with **explicit** `asFunction(...).singleton()`
   registrations (avoid `CLASSIC` param-name injection — it breaks under minified bundles).
 - Register the already-resolved async DB with `asValue(db)` since Awilix factories are sync.
 - Expose a `resolveAll()`/`deps` helper so consumer call sites stay stable.
-This fallback is documented here so the decision is reversible without re-investigation.
+  This fallback is documented here so the decision is reversible without re-investigation.
 
 **Verify:** server boots; `db`/`aiService` are single shared instances across requests;
 type-check passes; `rg "zero-ioc"` returns nothing.
@@ -149,6 +154,7 @@ model maps cleanly to Zeta plugins, `@hono/zod-validator` covers request validat
 the OpenAPI spec if we want to keep it.
 
 ### 3a. Add Hono + scaffolding
+
 - `bun add hono @hono/zod-validator` (+ `@hono/zod-openapi` only if OpenAPI is required).
 - Decide whether the OpenAPI document is actually consumed downstream. If not, drop it to
   simplify (plain `hono` + `@hono/zod-validator`); if yes, build routes with
@@ -156,24 +162,25 @@ the OpenAPI spec if we want to keep it.
 
 ### 3b. Map the building blocks
 
-| Zeta | Hono equivalent |
-|---|---|
-| `createApp({ prefix })` | `new Hono().basePath(prefix)` (or `OpenAPIHono`) |
-| `.use(subApp)` | `app.route(prefix, subApp)` |
-| `.get/.post/.put/.delete` | same verbs on Hono |
-| `.method("PATCH", ...)` | `app.patch(...)` |
-| `.decorate(deps)` | `c.set(...)` via middleware, or import singletons directly |
-| `.onGlobalRequest` | `app.use(async (c, next) => { ...; await next() })` |
-| `.onGlobalAfterResponse` | middleware after `await next()` |
-| `.onGlobalError` | `app.onError((err, c) => ...)` |
-| `.export()` | export the `Hono` instance |
-| `.mount(fetchStatic())` | `app.get("*", staticHandler)` (see Phase 4) |
-| `.listen(port)` | `export default { port, fetch: app.fetch }` (Bun) |
-| HttpError classes (`NotFoundHttpError`, …) | `throw new HTTPException(status, { message })` |
-| `NoResponse` | return `c.body(null, 204)` |
-| zod `body`/`params`/`responses` | `zValidator("json"|"param"|"query", schema)` |
+| Zeta                                       | Hono equivalent                                            |
+| ------------------------------------------ | ---------------------------------------------------------- | ------- | ----------------- |
+| `createApp({ prefix })`                    | `new Hono().basePath(prefix)` (or `OpenAPIHono`)           |
+| `.use(subApp)`                             | `app.route(prefix, subApp)`                                |
+| `.get/.post/.put/.delete`                  | same verbs on Hono                                         |
+| `.method("PATCH", ...)`                    | `app.patch(...)`                                           |
+| `.decorate(deps)`                          | `c.set(...)` via middleware, or import singletons directly |
+| `.onGlobalRequest`                         | `app.use(async (c, next) => { ...; await next() })`        |
+| `.onGlobalAfterResponse`                   | middleware after `await next()`                            |
+| `.onGlobalError`                           | `app.onError((err, c) => ...)`                             |
+| `.export()`                                | export the `Hono` instance                                 |
+| `.mount(fetchStatic())`                    | `app.get("*", staticHandler)` (see Phase 4)                |
+| `.listen(port)`                            | `export default { port, fetch: app.fetch }` (Bun)          |
+| HttpError classes (`NotFoundHttpError`, …) | `throw new HTTPException(status, { message })`             |
+| `NoResponse`                               | return `c.body(null, 204)`                                 |
+| zod `body`/`params`/`responses`            | `zValidator("json"                                         | "param" | "query", schema)` |
 
 ### 3c. Port files (one at a time, keep both runnable)
+
 1. **Plugins** → Hono middleware:
    - `cors-plugin.ts` (per-site dynamic CORS from cache) → `app.use` middleware. Keep the
      existing sync origin cache logic; set headers on `c.res`/`c.header`. Note: Hono has a
@@ -202,6 +209,7 @@ the OpenAPI spec if we want to keep it.
      `App` type import across the build boundary.
 
 ### 3d. Decisions to confirm before starting
+
 - **OpenAPI**: keep the served spec (use `@hono/zod-openapi`) or drop it (simpler)?
 - **Typed client**: keep an end-to-end typed client (`hc<App>`) or simplify to raw `fetch`?
 
@@ -217,6 +225,7 @@ responses against the current server.
 ## Phase 4 — Replace `@aklinker1/aframe` (build/dev framework)
 
 **What it does:**
+
 - Dev: Vite dev server for `./app` (Vue), proxying `/ask-ai.js` + `/privacy-policy` to the
   backend; runs the Bun server alongside.
 - Build: builds the Vue app with Vite, bundles `./server` + `./shared` with Bun, gzips
@@ -228,6 +237,7 @@ responses against the current server.
 Prerender is disabled (`prerender: false`), which simplifies the replacement.
 
 **Replacement strategy**
+
 1. **App build** — use Vite directly:
    - Move `backend/aframe.config.ts` Vite config (base `./`, plugins `vue()`,
      `tailwindcss()`, the `applyTemplateVars` transform) into a standard `vite.config.ts`
@@ -287,4 +297,7 @@ container locally before updating k8s.
   `fetch` — the frontend already uses raw `fetch` for 3 of 4 calls.
 - Decide on **gzip-at-build** vs. letting the gateway/CDN compress, when replacing aframe.
 - Prerender is currently disabled, so no SSG replacement is needed.
+
+```
+
 ```

@@ -1,10 +1,18 @@
-import { createApp, NoResponse, NotFoundHttpError, UnauthorizedHttpError } from "@aklinker1/zeta";
+import {
+  createApp,
+  NoResponse,
+  NotFoundHttpError,
+  UnauthorizedHttpError,
+} from "@aklinker1/zeta";
 import dedent from "dedent";
 import z from "zod";
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { decorateContextPlugin } from "../plugins/decorate-context-plugin";
-import { invalidateKnowledgeCache, knowledgeDir } from "../utils/knowledge-files";
+import {
+  invalidateKnowledgeCache,
+  knowledgeDir,
+} from "../utils/knowledge-files";
 import env from "../utils/env";
 
 function requireAdmin(request: Request): void {
@@ -16,15 +24,19 @@ function requireAdmin(request: Request): void {
   }
 }
 
-const KnowledgeFile = z.object({
-  id: z.string(),
-  siteId: z.string(),
-  filename: z.string(),
-  updatedAt: z.string().datetime(),
-}).meta({ ref: "KnowledgeFile" });
+const KnowledgeFile = z
+  .object({
+    id: z.string(),
+    siteId: z.string(),
+    filename: z.string(),
+    updatedAt: z.string().datetime(),
+  })
+  .meta({ ref: "KnowledgeFile" });
 
 const idParam = { params: z.object({ id: z.string() }) };
-const idFileIdParam = { params: z.object({ id: z.string(), fileId: z.string() }) };
+const idFileIdParam = {
+  params: z.object({ id: z.string(), fileId: z.string() }),
+};
 
 export const knowledgeApis = createApp({ prefix: "/sites" })
   .use(decorateContextPlugin)

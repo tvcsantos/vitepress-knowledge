@@ -30,5 +30,3 @@ export const knowledgeFiles = sqliteTable(
   },
   (t) => [index("knowledge_files_site_filename_idx").on(t.siteId, t.filename)],
 );
-
-

@@ -36,13 +36,17 @@ export const assetApis = createApp()
         ? await db.sites.get(siteId)
         : await db.sites.getDefault();
 
-      if (!site) throw new NotFoundHttpError(
-        siteId
-          ? `Site '${siteId}' not found`
-          : "siteId is required when multiple sites are configured",
-      );
+      if (!site)
+        throw new NotFoundHttpError(
+          siteId
+            ? `Site '${siteId}' not found`
+            : "siteId is required when multiple sites are configured",
+        );
 
-      return applyAppTemplateVars(askAiJsTemplate as string, siteToConfig(site));
+      return applyAppTemplateVars(
+        askAiJsTemplate as string,
+        siteToConfig(site),
+      );
     },
   )
   .get(

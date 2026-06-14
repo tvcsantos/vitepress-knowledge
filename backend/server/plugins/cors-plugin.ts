@@ -4,7 +4,10 @@ import { db } from "../dependencies";
 import { siteToConfig } from "../utils/site-config";
 
 // Sync cache: siteId -> allowed origins Set (TTL 5 min)
-const originCache = new Map<string, { origins: Set<string>; expiresAt: number }>();
+const originCache = new Map<
+  string,
+  { origins: Set<string>; expiresAt: number }
+>();
 const CACHE_TTL_MS = 5 * 60 * 1_000;
 
 /** Warm the cache for a given siteId (async, fire-and-forget). */
@@ -57,7 +60,11 @@ export const corsPlugin = createApp()
       set.headers["Access-Control-Allow-Headers"] = CORS_HEADERS;
     }
 
-    consola.debug("CORS:", { origin, allowed: allowedOrigins, headers: set.headers });
+    consola.debug("CORS:", {
+      origin,
+      allowed: allowedOrigins,
+      headers: set.headers,
+    });
 
     if (request.method === "OPTIONS")
       return new Response("", { status: 200, headers: set.headers });

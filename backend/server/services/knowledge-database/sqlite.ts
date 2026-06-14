@@ -17,7 +17,12 @@ type DbKnowledgeFile = typeof knowledgeFiles.$inferSelect;
 
 /** Map a Drizzle row (Date updatedAt) to the KnowledgeFile type (string updatedAt). */
 function knowledgeFileFromDb(row: DbKnowledgeFile): KnowledgeFile {
-  return { id: row.id, siteId: row.siteId, filename: row.filename, updatedAt: row.updatedAt.toISOString() };
+  return {
+    id: row.id,
+    siteId: row.siteId,
+    filename: row.filename,
+    updatedAt: row.updatedAt.toISOString(),
+  };
 }
 
 /** Map a Drizzle row (Date createdAt) to the shared Site type (string createdAt). */
@@ -69,7 +74,10 @@ export async function createSqliteKnowledgeDatabase(): Promise<KnowledgeDatabase
       },
       upsert: async (siteId, filename) => {
         const existing = await db.query.knowledgeFiles.findFirst({
-          where: and(eq(knowledgeFiles.siteId, siteId), eq(knowledgeFiles.filename, filename)),
+          where: and(
+            eq(knowledgeFiles.siteId, siteId),
+            eq(knowledgeFiles.filename, filename),
+          ),
         });
         if (existing) {
           const [row] = await db
@@ -89,13 +97,14 @@ export async function createSqliteKnowledgeDatabase(): Promise<KnowledgeDatabase
         await db.delete(knowledgeFiles).where(eq(knowledgeFiles.id, id));
       },
       deleteAll: async (siteId) => {
-        await db.delete(knowledgeFiles).where(eq(knowledgeFiles.siteId, siteId));
+        await db
+          .delete(knowledgeFiles)
+          .where(eq(knowledgeFiles.siteId, siteId));
       },
     },
 
     sites: {
-      getAll: async () =>
-        (await db.query.sites.findMany()).map(siteFromDb),
+      getAll: async () => (await db.query.sites.findMany()).map(siteFromDb),
       getDefault: async () => {
         const rows = await db.query.sites.findMany({ limit: 2 });
         return rows.length === 1 ? siteFromDb(rows[0]) : undefined;
@@ -121,7 +130,6 @@ export async function createSqliteKnowledgeDatabase(): Promise<KnowledgeDatabase
         await db.delete(sites).where(eq(sites.id, id));
       },
     },
-
   };
   return database;
 }

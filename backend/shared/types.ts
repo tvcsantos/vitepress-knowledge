@@ -4,15 +4,22 @@ export const Site = z
   .object({
     id: z.string(),
     name: z.string().describe("Human-readable label for this site."),
-    docsUrl: z.string().url().describe("URL to the VitePress site hosting /knowledge/* files."),
+    docsUrl: z
+      .string()
+      .url()
+      .describe("URL to the VitePress site hosting /knowledge/* files."),
     appName: z.string().describe("Application name used throughout the UI."),
     brandColor: z.string().describe("Brand color (any valid CSS color)."),
-    brandContentColor: z.string().describe("Text/icon color on top of brand color."),
+    brandContentColor: z
+      .string()
+      .describe("Text/icon color on top of brand color."),
     serverUrl: z.string().describe("Public URL where this server is hosted."),
     corsOrigin: z.string().describe("Comma-separated allowed CORS origins."),
     assistantIconUrl: z.string().describe("URL to the assistant avatar icon."),
     systemPrompt: z.string().describe("System prompt template sent to the AI."),
-    welcomeMessage: z.string().describe("Welcome message shown before first user message."),
+    welcomeMessage: z
+      .string()
+      .describe("Welcome message shown before first user message."),
     createdAt: z.string().datetime().describe("ISO 8601 creation timestamp."),
   })
   .meta({ ref: "Site" });

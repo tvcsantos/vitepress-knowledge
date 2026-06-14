@@ -1,9 +1,13 @@
-import { createApp, NoResponse, NotFoundHttpError, UnauthorizedHttpError } from "@aklinker1/zeta";
+import {
+  createApp,
+  NoResponse,
+  NotFoundHttpError,
+  UnauthorizedHttpError,
+} from "@aklinker1/zeta";
 import dedent from "dedent";
 import z from "zod";
 import { Site, SiteInsert, SitePatch } from "../../shared/types";
 import { decorateContextPlugin } from "../plugins/decorate-context-plugin";
-import { invalidateSiteCache } from "../plugins/resolve-site-plugin";
 import { invalidateCorsCache } from "../plugins/cors-plugin";
 import { invalidateKnowledgeCache } from "../utils/knowledge-files";
 import env from "../utils/env";
@@ -87,7 +91,6 @@ export const siteApis = createApp({ prefix: "/sites" })
       const site = await db.sites.update(params.id, body);
       if (!site) throw new NotFoundHttpError(`Site '${params.id}' not found`);
       // Invalidate caches so the next request picks up the new config
-      invalidateSiteCache(params.id);
       invalidateCorsCache(params.id);
       if (body.docsUrl) invalidateKnowledgeCache(params.id);
       return site;
@@ -104,7 +107,6 @@ export const siteApis = createApp({ prefix: "/sites" })
     async ({ request, params, db }) => {
       requireAdmin(request);
       await db.sites.delete(params.id);
-      invalidateSiteCache(params.id);
       invalidateCorsCache(params.id);
       invalidateKnowledgeCache(params.id);
     },
