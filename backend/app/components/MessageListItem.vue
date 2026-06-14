@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { mdToHtml } from "../utils/md-to-html.ts";
 import type { ChatMessage } from "../../shared/types";
 import MarkdownRenderer from "./MarkdownRenderer.vue";
 

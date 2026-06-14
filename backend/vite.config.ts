@@ -40,6 +40,10 @@ export default defineConfig({
   build: {
     outDir: "../.output/public",
     emptyOutDir: true,
+    // Syntax-highlighting grammars are lazy-loaded per language (see
+    // app/utils/md-to-html.ts). A few grammars (e.g. cpp, emacs-lisp) are large
+    // but only fetched on demand, so the chunk-size warning isn't meaningful here.
+    chunkSizeWarningLimit: 1024,
   },
   server: {
     port: 3000,
