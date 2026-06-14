@@ -1,25 +1,17 @@
 import { consola } from "consola";
-import { createApp } from "@aklinker1/zeta";
+import { createMiddleware } from "hono/factory";
 import pc from "picocolors";
 
-export const requestLoggerPlugin = createApp()
-  .onGlobalRequest(({ request }) => {
-    consola.info(
-      `${pc.cyan("[http]")} <-- ${getRequestColor(request.method)(request.method)} ${request.url}`,
-    );
-  })
-  .onGlobalAfterResponse(({ request, response }) => {
-    consola.info(
-      `${pc.cyan("[http]")} --> ${getRequestColor(request.method)(request.method)} ${request.url} ${response.status ?? 200}`,
-    );
-  })
-  .onGlobalError(({ request, error }) => {
-    consola.error(
-      `${pc.cyan("[http]")} ${getRequestColor(request.method)(request.method)} ${request.url} ERROR`,
-      error,
-    );
-  })
-  .export();
+export const requestLoggerMiddleware = createMiddleware(async (c, next) => {
+  const { method, url } = c.req;
+  consola.info(
+    `${pc.cyan("[http]")} <-- ${getRequestColor(method)(method)} ${url}`,
+  );
+  await next();
+  consola.info(
+    `${pc.cyan("[http]")} --> ${getRequestColor(method)(method)} ${url} ${c.res.status}`,
+  );
+});
 
 function getRequestColor(method: string) {
   switch (method.toUpperCase()) {

@@ -1,15 +1,10 @@
-import {
-  createApp,
-  NoResponse,
-  NotFoundHttpError,
-  UnauthorizedHttpError,
-} from "@aklinker1/zeta";
-import dedent from "dedent";
-import z from "zod";
-import { Site, SiteInsert, SitePatch } from "../../shared/types";
-import { decorateContextPlugin } from "../plugins/decorate-context-plugin";
+import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { zValidator } from "@hono/zod-validator";
+import { SiteInsert, SitePatch } from "../../shared/types";
 import { invalidateCorsCache } from "../plugins/cors-plugin";
 import { invalidateKnowledgeCache } from "../utils/knowledge-files";
+import { db } from "../dependencies";
 import env from "../utils/env";
 
 function requireAdmin(request: Request): void {
@@ -17,97 +12,53 @@ function requireAdmin(request: Request): void {
   const auth = request.headers.get("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : auth;
   if (token !== env.ADMIN_TOKEN) {
-    throw new UnauthorizedHttpError("Invalid or missing ADMIN_TOKEN");
+    throw new HTTPException(401, { message: "Invalid or missing ADMIN_TOKEN" });
   }
 }
 
-const idParam = { params: z.object({ id: z.string() }) };
-
-export const siteApis = createApp({ prefix: "/sites" })
-  .use(decorateContextPlugin)
-  .get(
-    "/",
-    {
-      operationId: "listSites",
-      description: dedent`List all registered sites.`,
-      responses: z.array(Site),
-    },
-    async ({ request, db }) => {
-      requireAdmin(request);
-      return db.sites.getAll();
-    },
-  )
-  .get(
-    "/default",
-    {
-      operationId: "getDefaultSite",
-      description: dedent`Get the default site. Only returns a site when exactly one site exists; returns null when zero or multiple sites are configured (siteId must be provided explicitly in that case).`,
-      responses: Site.nullable(),
-    },
-    async ({ db }) => {
-      return (await db.sites.getDefault()) ?? null;
-    },
-  )
-  .post(
-    "/",
-    {
-      operationId: "createSite",
-      description: dedent`Create a new site.`,
-      body: SiteInsert,
-      responses: Site,
-    },
-    async ({ request, body, db }) => {
-      requireAdmin(request);
-      return db.sites.insert(body);
-    },
-  )
-  .get(
-    "/:id",
-    {
-      operationId: "getSite",
-      description: dedent`Get a site by ID.`,
-      ...idParam,
-      responses: Site,
-    },
-    async ({ request, params, db }) => {
-      requireAdmin(request);
-      const site = await db.sites.get(params.id);
-      if (!site) throw new NotFoundHttpError(`Site '${params.id}' not found`);
-      return site;
-    },
-  )
-  .method(
-    "PATCH",
-    "/:id",
-    {
-      operationId: "updateSite",
-      description: dedent`Update a site by ID.`,
-      ...idParam,
-      body: SitePatch,
-      responses: Site,
-    },
-    async ({ request, params, body, db }) => {
-      requireAdmin(request);
-      const site = await db.sites.update(params.id, body);
-      if (!site) throw new NotFoundHttpError(`Site '${params.id}' not found`);
-      // Invalidate caches so the next request picks up the new config
-      invalidateCorsCache(params.id);
-      if (body.docsUrl) invalidateKnowledgeCache(params.id);
-      return site;
-    },
-  )
-  .delete(
-    "/:id",
-    {
-      operationId: "deleteSite",
-      description: dedent`Delete a site by ID.`,
-      ...idParam,
-      responses: NoResponse,
-    },
-    async ({ request, params, db }) => {
-      requireAdmin(request);
-      await db.sites.delete(params.id);
-      invalidateCorsCache(params.id);
-      invalidateKnowledgeCache(params.id);
-    },
-  );
+export const siteApis = new Hono()
+  // List all registered sites.
+  .get("/", async (c) => {
+    requireAdmin(c.req.raw);
+    return c.json(await db.sites.getAll());
+  })
+  // Get the default site (only when exactly one site exists; null otherwise).
+  .get("/default", async (c) => {
+    return c.json((await db.sites.getDefault()) ?? null);
+  })
+  // Create a new site.
+  .post("/", zValidator("json", SiteInsert), async (c) => {
+    requireAdmin(c.req.raw);
+    return c.json(await db.sites.insert(c.req.valid("json")));
+  })
+  // Get a site by ID.
+  .get("/:id", async (c) => {
+    requireAdmin(c.req.raw);
+    const id = c.req.param("id");
+    const site = await db.sites.get(id);
+    if (!site)
+      throw new HTTPException(404, { message: `Site '${id}' not found` });
+    return c.json(site);
+  })
+  // Update a site by ID.
+  .patch("/:id", zValidator("json", SitePatch), async (c) => {
+    requireAdmin(c.req.raw);
+    const id = c.req.param("id");
+    const body = c.req.valid("json");
+    const site = await db.sites.update(id, body);
+    if (!site)
+      throw new HTTPException(404, { message: `Site '${id}' not found` });
+    // Invalidate caches so the next request picks up the new config
+    invalidateCorsCache(id);
+    if (body.docsUrl) invalidateKnowledgeCache(id);
+    return c.json(site);
+  })
+  // Delete a site by ID.
+  .delete("/:id", async (c) => {
+    requireAdmin(c.req.raw);
+    const id = c.req.param("id");
+    await db.sites.delete(id);
+    invalidateCorsCache(id);
+    invalidateKnowledgeCache(id);
+    return c.body(null, 204);
+  });

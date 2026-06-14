@@ -2,7 +2,6 @@
 import { WELCOME_CHAT_MESSAGE } from "./utils/constants";
 import MessageList from "./components/MessageList.vue";
 import { computed, onMounted, ref, shallowRef, toRaw, watch } from "vue";
-import { apiClient } from "./utils/api-client";
 import type { AiModel, ChatMessage } from "../shared/types";
 import { isIframe } from "./utils/is-iframe";
 import useParentTheme from "./composables/useParentTheme";
@@ -62,11 +61,16 @@ const selectedModel = ref<string>("");
 
 onMounted(async () => {
   try {
-    const res = await apiClient.fetch("GET", "/api/models", {});
-    models.value = res;
+    const res = await fetch(`${SERVER_URL}/api/models`);
+    if (!res.ok)
+      throw new Error(`Request failed: ${res.status} ${res.statusText}`);
+    const fetchedModels: AiModel[] = await res.json();
+    models.value = fetchedModels;
     const stored = localStorage.getItem(SELECTED_MODEL_STORAGE_KEY) ?? "";
     selectedModel.value =
-      res.find((m) => m.enum === stored)?.enum ?? res[0]?.enum ?? "";
+      fetchedModels.find((m) => m.enum === stored)?.enum ??
+      fetchedModels[0]?.enum ??
+      "";
   } catch (err) {
     error.value = err instanceof Error ? err : new Error(String(err));
     console.error(err);

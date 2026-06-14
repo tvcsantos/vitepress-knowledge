@@ -1,18 +1,7 @@
-import { createApp } from "@aklinker1/zeta";
-import { AiModel } from "../../shared/types";
-import dedent from "dedent";
-import { decorateContextPlugin } from "../plugins/decorate-context-plugin";
+import { Hono } from "hono";
+import { aiService } from "../dependencies";
 
-export const modelApis = createApp({ prefix: "/models" })
-  .use(decorateContextPlugin)
-  .get(
-    "/",
-    {
-      operationId: "listModels",
-      description: dedent`
-        List models available to chat with.
-      `,
-      responses: AiModel.array(),
-    },
-    ({ aiService }) => aiService.models,
-  );
+// List models available to chat with.
+export const modelApis = new Hono().get("/", (c) =>
+  c.json(aiService.models.map((m) => ({ name: m.name, enum: m.enum }))),
+);

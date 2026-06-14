@@ -148,77 +148,120 @@ validation, HTTP error classes, `NoResponse`, OpenAPI generation
 (`zodSchemaAdapter` + `openApi` config), `.mount()`, `.listen()`, and a typed RPC client
 (`createAppClient<App>`).
 
-**Chosen replacement: [Hono](https://hono.dev/)** — first-class Bun support, middleware
-model maps cleanly to Zeta plugins, `@hono/zod-validator` covers request validation,
-`hono/client` (`hc`) gives an end-to-end typed client, and `@hono/zod-openapi` covers
-the OpenAPI spec if we want to keep it.
+**Chosen replacement: [Hono](https://hono.dev/)** — well-known and maintained, first-class
+Bun support, middleware model maps cleanly to Zeta plugins.
 
-### 3a. Add Hono + scaffolding
+### Confirmed scope decisions
 
-- `bun add hono @hono/zod-validator` (+ `@hono/zod-openapi` only if OpenAPI is required).
-- Decide whether the OpenAPI document is actually consumed downstream. If not, drop it to
-  simplify (plain `hono` + `@hono/zod-validator`); if yes, build routes with
-  `@hono/zod-openapi`'s `OpenAPIHono` + `createRoute`.
+- **OpenAPI spec: DROPPED.** Nothing consumes it (the frontend never fetches it; there is no
+  docs UI). Use plain `hono` + `@hono/zod-validator`. Consequence: **input** validation is
+  kept (json/param/query/form); Zeta's **response** validation is dropped (acceptable — it
+  was a dev-time safety net; most frameworks don't validate responses).
+- **Typed RPC client: DROPPED.** Used for only 1 of 4 frontend calls. Replace with raw
+  `fetch`, consistent with the other 3. Removes the `App` type import across the
+  app/server build boundary and avoids Hono route-chaining constraints.
+
+### Key findings from the code (read before starting)
+
+- **`.listen()` coupling is the main trap.** Both dev and prod invoke the backend via
+  `const { default: server } = await import("./server/main"); server.listen(port)` (aframe's
+  dev-server and generated `server-entry.ts`). A Hono app has **no** `.listen()`. Since
+  aframe stays until Phase 4, `main.ts` must keep a working `.listen(port)` during Phase 3
+  via a shim (see step 5). The bare `export default { port, fetch }` is only the Phase-4
+  end state.
+- **No double-prefixing.** Mount sub-routers with `app.route("/sites", siteApis)` where the
+  sub-router has **no** `basePath`. Don't set both a basePath and a mount prefix.
+- **Two routers share `/sites`.** `site-apis.ts` and `knowledge-apis.ts` both use
+  `prefix: "/sites"`. Mount both (`app.route("/sites", siteApis)` and
+  `app.route("/sites", knowledgeApis)`) — Hono merges them fine; keep them as separate files.
+- **Delete the decorate plugin.** Phase 2 made `db`/`aiService` module singletons, so Hono
+  handlers `import { db, aiService } from "../dependencies"` directly. Remove
+  `decorate-context-plugin.ts` entirely and avoid Hono `Variables` context typing.
+- **Error-body shape doesn't matter.** The frontend only checks `res.ok`/`res.status`/
+  `res.statusText` and the SSE `{ error }` field — it never parses a structured error body.
+  So Hono's `HTTPException` body differing from Zeta's `ErrorResponse` is a non-issue.
+- **Win: the multipart hack is removed.** `knowledge-apis.ts`'s clone-request-to-read-
+  FormData workaround becomes `await c.req.formData()`.
+
+### 3a. Add Hono
+
+- `bun add hono @hono/zod-validator` (in `backend`). No `@hono/zod-openapi`, no `hono/client`.
 
 ### 3b. Map the building blocks
 
-| Zeta                                       | Hono equivalent                                            |
-| ------------------------------------------ | ---------------------------------------------------------- | ------- | ----------------- |
-| `createApp({ prefix })`                    | `new Hono().basePath(prefix)` (or `OpenAPIHono`)           |
-| `.use(subApp)`                             | `app.route(prefix, subApp)`                                |
-| `.get/.post/.put/.delete`                  | same verbs on Hono                                         |
-| `.method("PATCH", ...)`                    | `app.patch(...)`                                           |
-| `.decorate(deps)`                          | `c.set(...)` via middleware, or import singletons directly |
-| `.onGlobalRequest`                         | `app.use(async (c, next) => { ...; await next() })`        |
-| `.onGlobalAfterResponse`                   | middleware after `await next()`                            |
-| `.onGlobalError`                           | `app.onError((err, c) => ...)`                             |
-| `.export()`                                | export the `Hono` instance                                 |
-| `.mount(fetchStatic())`                    | `app.get("*", staticHandler)` (see Phase 4)                |
-| `.listen(port)`                            | `export default { port, fetch: app.fetch }` (Bun)          |
-| HttpError classes (`NotFoundHttpError`, …) | `throw new HTTPException(status, { message })`             |
-| `NoResponse`                               | return `c.body(null, 204)`                                 |
-| zod `body`/`params`/`responses`            | `zValidator("json"                                         | "param" | "query", schema)` |
+| Zeta                                       | Hono equivalent                                         |
+| ------------------------------------------ | ------------------------------------------------------- |
+| `createApp({ prefix })` (root)             | `new Hono()`                                            |
+| `createApp({ prefix })` (sub-router)       | `new Hono()` mounted via `app.route(prefix, subApp)`    |
+| `.use(subApp)`                             | `app.route(prefix, subApp)` (prefix only on the mount)  |
+| `.get/.post/.put/.delete`                  | same verbs on Hono                                       |
+| `.method("PATCH", ...)`                    | `app.patch(...)`                                         |
+| `.decorate(deps)`                          | delete — `import { db, aiService }` directly in handlers |
+| `.onGlobalRequest`                         | `app.use(async (c, next) => { ...; await next() })`     |
+| `.onGlobalAfterResponse`                   | middleware logic after `await next()` (read `c.res`)    |
+| `.onGlobalError`                           | `app.onError((err, c) => ...)`                          |
+| `.export()`                                | export the `Hono` instance                              |
+| `.mount(fetchStatic())`                    | catch-all `app.get("*", ...)` / `app.mount(...)` (Phase 4) |
+| `.listen(port)`                            | transitional shim object (step 5); bare `{ fetch }` in Phase 4 |
+| HttpError classes (`NotFoundHttpError`, …) | `throw new HTTPException(status, { message })`          |
+| `NoResponse`                               | `return c.body(null, 204)`                              |
+| `body` / `params` / `query` schemas        | `zValidator("json" \| "param" \| "query" \| "form", schema)` |
+| `responses` schema                         | dropped (no response validation in plain Hono)          |
 
 ### 3c. Port files (one at a time, keep both runnable)
 
-1. **Plugins** → Hono middleware:
-   - `cors-plugin.ts` (per-site dynamic CORS from cache) → `app.use` middleware. Keep the
-     existing sync origin cache logic; set headers on `c.res`/`c.header`. Note: Hono has a
-     built-in `cors()` but it doesn't support per-site dynamic origins easily — keep the
-     custom logic.
-   - `request-logger-plugin.ts` → logging middleware (or Hono's `logger()`).
-   - `decorate-context-plugin.ts` → middleware that does `c.set("db", ...)` /
-     `c.set("aiService", ...)`, or simply import the singletons in handlers and delete this.
+1. **Middleware (from plugins):**
+   - `cors-plugin.ts` → `app.use` middleware. Keep the existing sync per-site origin cache
+     logic; set headers via `c.header(...)`. For `OPTIONS`, short-circuit with
+     `return c.body(null, 204)`. (Hono's built-in `cors()` can't do per-site dynamic origins
+     — keep the custom logic.)
+   - `request-logger-plugin.ts` → request/after/error logging middleware (or Hono `logger()`).
+   - `decorate-context-plugin.ts` → **delete** (handlers import singletons directly).
 2. **API modules** (`model-`, `chat-`, `site-`, `knowledge-`, `asset-apis.ts`) → Hono
-   sub-routers with `zValidator`. Replace `ctx` destructuring (`{ body, params, db, set, url, request }`)
-   with Hono's `c` (`c.req.valid(...)`, `c.req.param(...)`, `c.req.query(...)`, `c.req.raw`).
-   - `chat-apis.ts` streaming: replace manual `ReadableStream` + SSE with Hono's
-     `streamSSE` helper (`hono/streaming`).
-   - `knowledge-apis.ts` multipart upload: use `c.req.formData()` /
-     `c.req.parseBody()` instead of the Zeta `ctx.body` FormData hack.
-   - `asset-apis.ts`: set `Content-Type` via `c.header(...)`.
+   routers with `zValidator`. Replace `ctx` destructuring
+   (`{ body, params, db, set, url, request }`) with Hono's `c`:
+   `c.req.valid("json"|"param"|"query")`, `c.req.param(...)`, `new URL(c.req.url)`,
+   `c.req.raw`, and `import { db, aiService }` from dependencies.
+   - `chat-apis.ts` streaming: replace the manual `ReadableStream` + SSE encoding with
+     `streamSSE` from `hono/streaming` (keep the same `{ done, messages }` / `{ error }`
+     event payloads the frontend expects).
+   - `knowledge-apis.ts` multipart upload: `await c.req.formData()` → `.get("file")`.
+   - `asset-apis.ts`: set content types via `c.header(...)` (`application/javascript`,
+     `text/markdown`).
 3. **`litellm.ts`**: replace `InternalServerErrorHttpError` with `HTTPException(500, …)`.
-4. **`main.ts`**: compose root Hono app, mount sub-routers with `app.route(...)`, register
-   middleware, add `/api/health`, and `export default { port, fetch: app.fetch }`. Keep the
-   `globalThis.aframe.static` SPA-fallback logic for now (Phase 4 replaces it).
-5. **Frontend client** (`app/utils/api-client.ts`): replace `createAppClient<App>` with
-   Hono's `hc<App>(SERVER_URL)`. Update the single call site in `App.vue`
-   (`apiClient.fetch("GET", "/api/models", {})` → typed `client.api.models.$get()`).
-   - Alternative: since the frontend mostly uses raw `fetch` already (3 of 4 calls), drop
-     the typed client entirely and use plain `fetch` for `/api/models` too — removes the
-     `App` type import across the build boundary.
+4. **`main.ts`** (compose): root `new Hono()`, register CORS + logger middleware, mount the
+   `/api` sub-app (which mounts model/chat/site/knowledge routers) and the asset routes,
+   add `/api/health`, and keep the `globalThis.aframe.static` SPA-fallback `/` route +
+   catch-all for now (Phase 4 replaces these).
+5. **`main.ts`** (export shim — required while aframe remains):
 
-### 3d. Decisions to confirm before starting
+   ```ts
+   const server = {
+     fetch: app.fetch,
+     listen: (port: number) => Bun.serve({ port, fetch: app.fetch }),
+   };
+   export default server;
+   export type App = typeof app; // only if anything still needs it; client is gone
+   ```
 
-- **OpenAPI**: keep the served spec (use `@hono/zod-openapi`) or drop it (simpler)?
-- **Typed client**: keep an end-to-end typed client (`hc<App>`) or simplify to raw `fetch`?
+   This satisfies aframe's `server.listen(port)` in both dev and prod. Phase 4 simplifies it.
+6. **Frontend** (`app/utils/api-client.ts` + `App.vue`): delete `api-client.ts`; replace the
+   single `apiClient.fetch("GET", "/api/models", {})` call in `App.vue` with
+   `await fetch(\`${SERVER_URL}/api/models\`).then((r) => r.json())`, matching the existing
+   raw-fetch pattern. Remove the `App`-type import.
 
-**Verify:** all endpoints respond identically (models, chat, chat/stream SSE, sites CRUD,
-knowledge upload/list/delete, ask-ai.js, privacy-policy, health, SPA fallback); CORS still
-per-site; type-check + build pass.
+### 3d. Verify
 
-**Risk:** high (surface area). Mitigate by porting one router at a time and diffing
-responses against the current server.
+- Every endpoint behaves identically: `/api/models`, `/api/chat`, `/api/chat/stream` (SSE
+  payloads unchanged), sites CRUD, knowledge upload/list/delete, `/ask-ai.js`,
+  `/privacy-policy`, `/api/health`, and the `/` SPA fallback.
+- Per-site CORS still enforced (allowed origin echoed, `OPTIONS` preflight 204).
+- `vue-tsc`/`tsc -b` pass; `bun run build` (still aframe in Phase 3) produces a server whose
+  `server.listen(port)` boots.
+- `rg "@aklinker1/zeta"` returns nothing.
+
+**Risk:** high (surface area). Mitigate by porting one router at a time, keeping the shim so
+the app boots throughout, and diffing responses against the pre-migration server.
 
 ---
 

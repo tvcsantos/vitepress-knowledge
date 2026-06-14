@@ -1,4 +1,4 @@
-import { createApp } from "@aklinker1/zeta";
+import { createMiddleware } from "hono/factory";
 import consola from "consola";
 import { db } from "../dependencies";
 import { siteToConfig } from "../utils/site-config";
@@ -34,13 +34,6 @@ function getCachedOrigins(siteId: string): Set<string> | undefined {
   return entry.origins;
 }
 
-/** Read siteId from JSON body, X-Site-ID header, or ?siteId= query param — synchronously. */
-function getSiteIdSync(request: Request): string | null {
-  const headerSiteId = request.headers.get("x-site-id");
-  if (headerSiteId) return headerSiteId;
-  return new URL(request.url).searchParams.get("siteId");
-}
-
 export function invalidateCorsCache(siteId: string): void {
   originCache.delete(siteId);
 }
@@ -48,25 +41,21 @@ export function invalidateCorsCache(siteId: string): void {
 const CORS_METHODS = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
 const CORS_HEADERS = "Content-Type, Authorization, X-Site-ID";
 
-export const corsPlugin = createApp()
-  .onGlobalRequest(({ request, set }) => {
-    const siteId = getSiteIdSync(request);
-    const allowedOrigins = siteId ? getCachedOrigins(siteId) : undefined;
+/** Per-site dynamic CORS. Reads siteId from the X-Site-ID header or ?siteId= query param. */
+export const corsMiddleware = createMiddleware(async (c, next) => {
+  const siteId = c.req.header("x-site-id") ?? c.req.query("siteId");
+  const allowedOrigins = siteId ? getCachedOrigins(siteId) : undefined;
 
-    const origin = request.headers.get("origin") ?? "";
-    if (allowedOrigins?.has(origin)) {
-      set.headers["Access-Control-Allow-Origin"] = origin;
-      set.headers["Access-Control-Allow-Methods"] = CORS_METHODS;
-      set.headers["Access-Control-Allow-Headers"] = CORS_HEADERS;
-    }
+  const origin = c.req.header("origin") ?? "";
+  if (allowedOrigins?.has(origin)) {
+    c.header("Access-Control-Allow-Origin", origin);
+    c.header("Access-Control-Allow-Methods", CORS_METHODS);
+    c.header("Access-Control-Allow-Headers", CORS_HEADERS);
+  }
 
-    consola.debug("CORS:", {
-      origin,
-      allowed: allowedOrigins,
-      headers: set.headers,
-    });
+  consola.debug("CORS:", { origin, allowed: allowedOrigins });
 
-    if (request.method === "OPTIONS")
-      return new Response("", { status: 200, headers: set.headers });
-  })
-  .export();
+  if (c.req.method === "OPTIONS") return c.body(null, 204);
+
+  await next();
+});

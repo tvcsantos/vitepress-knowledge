@@ -1,4 +1,4 @@
-import { InternalServerErrorHttpError } from "@aklinker1/zeta";
+import { HTTPException } from "hono/http-exception";
 import type { AiModelDefinition, AiService } from ".";
 import env from "../../utils/env";
 import { aiModelRows, aiServiceRow, logStartupInfo } from "../../utils/log";
@@ -37,9 +37,9 @@ export function createLiteLlmAiService(): AiService {
         }),
       });
       if (res.status !== 200) {
-        throw new InternalServerErrorHttpError(
-          `LiteLLM API responded with ${res.status} ${res.statusText}`,
-        );
+        throw new HTTPException(500, {
+          message: `LiteLLM API responded with ${res.status} ${res.statusText}`,
+        });
       }
       const json = await res.json();
       return {
@@ -65,9 +65,9 @@ export function createLiteLlmAiService(): AiService {
         }),
       });
       if (res.status !== 200) {
-        throw new InternalServerErrorHttpError(
-          `LiteLLM API responded with ${res.status} ${res.statusText}`,
-        );
+        throw new HTTPException(500, {
+          message: `LiteLLM API responded with ${res.status} ${res.statusText}`,
+        });
       }
       yield* parseSseStream(res, (data) => {
         const json = JSON.parse(data);
