@@ -33,6 +33,7 @@
   ],
   "scripts": {
     "build": "bun build src/index.ts --outfile=dist/index.js --target node --packages=external",
+    "check": "tsc --noEmit && publint",
     "prepublishOnly": "bun run build",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
@@ -45,7 +46,6 @@
     "yaml": "^2.7.0"
   },
   "devDependencies": {
-    "@aklinker1/check": "^2.4.0",
     "publint": "^0.3.1",
     "typescript": "^6.0.3",
     "vitepress": "^1.5.0"

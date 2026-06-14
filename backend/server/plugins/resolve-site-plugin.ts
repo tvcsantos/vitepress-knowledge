@@ -1,4 +1,4 @@
-import { container } from "../dependencies";
+import { db } from "../dependencies";
 import { siteToConfig, type SiteConfig } from "../utils/site-config";
 import type { Site } from "../../shared/types";
 
@@ -11,7 +11,6 @@ export async function resolveSite(siteId: string): Promise<SiteConfig | undefine
   const cached = siteCache.get(siteId);
   if (cached && cached.expiresAt > now) return cached.config;
 
-  const { db } = container.resolveAll();
   const site: Site | undefined = await db.sites.get(siteId);
   if (!site) return undefined;
 

@@ -4,7 +4,7 @@
   "description": "Self-hosted server for hosting the Chat UI for your VitePress website",
   "type": "module",
   "scripts": {
-    "check": "check",
+    "check": "vue-tsc --noEmit",
     "aframe": "bun ../node_modules/@aklinker1/aframe/bin/aframe.ts",
     "dev": "bun aframe",
     "build": "bun aframe build",
@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@aklinker1/aframe": "^1.2.2",
-    "@aklinker1/zero-ioc": "^1.5.1",
     "@aklinker1/zeta": "^2.2.0",
     "@egoist/tailwindcss-icons": "^1.9.2",
     "@iconify-json/heroicons": "^1.2.3",
@@ -38,7 +37,6 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@aklinker1/check": "^2.4.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.4",
     "@vitejs/plugin-vue": "^6.0.6",

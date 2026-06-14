@@ -10,7 +10,7 @@ import { siteApis } from "./apis/site-apis";
 import { knowledgeApis } from "./apis/knowledge-apis";
 import { corsPlugin } from "./plugins/cors-plugin";
 import { requestLoggerPlugin } from "./plugins/request-logger-plugin";
-import { container } from "./dependencies";
+import { db } from "./dependencies";
 import { applyAppTemplateVars } from "./utils/template-vars";
 import { siteToConfig } from "./utils/site-config";
 
@@ -41,7 +41,6 @@ const app = createApp({
     "/",
     { operationId: "getApp", responses: NoResponse },
     async ({ url }): Promise<any> => {
-      const db = container.resolve("db");
       const siteId = url.searchParams.get("siteId");
       const site = siteId
         ? await db.sites.get(siteId)

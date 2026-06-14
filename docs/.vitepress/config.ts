@@ -7,6 +7,7 @@ export default defineConfig({
   description: "Generate knowledge files for LLMs",
   extends: knowledge({
     serverUrl: "http://localhost:3000",
+    siteId: "docs",
     paths: {
       "/": "docs",
       "/api/": "api-reference",

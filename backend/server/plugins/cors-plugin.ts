@@ -1,6 +1,6 @@
 import { createApp } from "@aklinker1/zeta";
 import consola from "consola";
-import { container } from "../dependencies";
+import { db } from "../dependencies";
 import { siteToConfig } from "../utils/site-config";
 
 // Sync cache: siteId -> allowed origins Set (TTL 5 min)
@@ -9,7 +9,6 @@ const CACHE_TTL_MS = 5 * 60 * 1_000;
 
 /** Warm the cache for a given siteId (async, fire-and-forget). */
 function warmCache(siteId: string): void {
-  const { db } = container.resolveAll();
   db.sites.get(siteId).then((site) => {
     if (!site) return;
     originCache.set(siteId, {
