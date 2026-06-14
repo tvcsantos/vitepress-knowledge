@@ -20,7 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -42,15 +43,32 @@ jobs:
       - name: Bump version
         id: version
         working-directory: backend
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
         run: |
-          bun pm version ${{ inputs.version }}
+          bun pm version "$VERSION_INPUT"
           VERSION=$(jq -r '.version' package.json)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Commit and tag
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           git add .
-          git commit -m "chore(release): Backend v${{ steps.version.outputs.version }}"
-          git tag "backend-v${{ steps.version.outputs.version }}"
+          git commit -m "chore(release): Backend v${VERSION}"
+          git tag "backend-v${VERSION}"
           git push
           git push --tags
+
+  # The tag above is pushed with GITHUB_TOKEN, which can't trigger ci-release.yml,
+  # so publish the Docker image directly here.
+  publish:
+    name: Publish Docker image
+    needs: release
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/reusable-publish-docker.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
+      ref: backend-v${{ needs.release.outputs.version }}

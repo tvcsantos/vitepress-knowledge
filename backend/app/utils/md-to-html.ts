@@ -109,7 +109,7 @@ export async function ensureLanguagesLoaded(md: string): Promise<void> {
         await highlighter!.loadLanguage(grammar);
         loadedLangs.add(lang);
       } catch {
-        // Unsupported grammar — leave it to fall back to plaintext.
+        // Unsupported grammar - leave it to fall back to plaintext.
       } finally {
         pendingLangs.delete(lang);
       }
@@ -128,7 +128,7 @@ export async function ensureLanguagesLoaded(md: string): Promise<void> {
  *    this is about keeping the widget in view, not about avoiding data loss.)
  *
  * Both behaviors live in a single `link_open` rule because markdown-it only
- * keeps one renderer rule per token type — registering them separately would
+ * keeps one renderer rule per token type - registering them separately would
  * mean the last one silently overwrites the other.
  */
 function linkPlugin(md: markdownit): void {

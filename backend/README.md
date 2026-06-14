@@ -134,7 +134,7 @@ bun --cwd backend preview  # build + run the production bundle
 The `Dockerfile` at the repo root contains the minimal build to produce and run
 the server (`bun run server/index.js`).
 
-## Syntax highlighting (Shiki — no WebAssembly)
+## Syntax highlighting (Shiki - no WebAssembly)
 
 The chat UI highlights code blocks in the assistant's responses with
 [Shiki](https://shiki.style). It uses Shiki's **JavaScript RegExp engine**
@@ -146,7 +146,7 @@ Grammars are **loaded on demand**: only the theme is preloaded, and a language's
 grammar is fetched the first time a code block uses it (unknown languages fall
 back to plaintext). Because of this, the production build emits many small,
 lazily-fetched grammar chunks, and a few grammars (e.g. `cpp`, `emacs-lisp`) are
-large — hence the raised `build.chunkSizeWarningLimit` in `vite.config.ts`. These
+large - hence the raised `build.chunkSizeWarningLimit` in `vite.config.ts`. These
 chunks are only downloaded when their language actually appears.
 
 Note: the JS engine runs standard TextMate grammars in `forgiving` mode; for the
