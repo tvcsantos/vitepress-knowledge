@@ -32,10 +32,10 @@ database and managed through the [sites API](#sites-admin-api).
 | `DISABLE_CORS`         | `false`                 | Set to `true` to skip all CORS enforcement. Useful when the server is behind a reverse proxy (e.g. nginx, Traefik, AWS ALB) that already handles CORS headers.  |
 | `ADMIN_TOKEN`          | -                       | Bearer token protecting the admin APIs (site management + knowledge upload). If unset, those APIs are open (not recommended). Generate: `openssl rand -hex 32`. |
 
-## Public API
+## Public API (`PORT`)
 
-These are called by the chat UI and don't require auth (CORS is enforced per-site
-based on the site's `corsOrigin`):
+These are served on the public port and called by the docs site and chat UI.
+CORS is enforced per-site based on the site's `corsOrigin`.
 
 | Method | Path                 | Description                                                                                                                 |
 | ------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -44,21 +44,19 @@ based on the site's `corsOrigin`):
 | `POST` | `/api/chat/stream`   | Same as above but streams the reply token-by-token via Server-Sent Events.                                                  |
 | `GET`  | `/ask-ai.js?siteId=` | The JS injected into your docs site. The plugin adds this script tag for you.                                               |
 | `GET`  | `/privacy-policy`    | The hosted privacy policy.                                                                                                  |
-| `GET`  | `/api/health`        | Health check (`204`).                                                                                                       |
 
-## Sites (admin API)
+## Management API (`MANAGEMENT_PORT`)
 
-A "site" holds all per-tenant configuration. Admin routes require
-`Authorization: Bearer $ADMIN_TOKEN` (when `ADMIN_TOKEN` is set).
+Served on the management port. Keep this port internal — do not expose it to the internet.
 
-| Method   | Path                 | Auth  | Description                                        |
-| -------- | -------------------- | ----- | -------------------------------------------------- |
-| `GET`    | `/api/sites`         | admin | List all sites.                                    |
-| `GET`    | `/api/sites/default` | -     | The single site, or `null` if zero/multiple exist. |
-| `POST`   | `/api/sites`         | admin | Create a site.                                     |
-| `GET`    | `/api/sites/:id`     | admin | Get a site.                                        |
-| `PATCH`  | `/api/sites/:id`     | admin | Update a site (partial).                           |
-| `DELETE` | `/api/sites/:id`     | admin | Delete a site (and its knowledge files).           |
+| Method   | Path             | Auth  | Description                                                 |
+| -------- | ---------------- | ----- | ----------------------------------------------------------- |
+| `GET`    | `/api/health`    | -     | Health check (`200 OK`). Used by liveness/readiness probes. |
+| `GET`    | `/api/sites`     | admin | List all sites.                                             |
+| `POST`   | `/api/sites`     | admin | Create a site.                                              |
+| `GET`    | `/api/sites/:id` | admin | Get a site.                                                 |
+| `PATCH`  | `/api/sites/:id` | admin | Update a site (partial).                                    |
+| `DELETE` | `/api/sites/:id` | admin | Delete a site (and its knowledge files).                    |
 
 ### Site fields
 
@@ -78,7 +76,7 @@ A "site" holds all per-tenant configuration. Admin routes require
 ### Example: create a site
 
 ```sh
-curl -X POST "$SERVER_URL/api/sites" \
+curl -X POST "$MANAGEMENT_URL/api/sites" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -90,14 +88,14 @@ curl -X POST "$SERVER_URL/api/sites" \
     "brandColor": "#00ADEF",
     "brandContentColor": "#ffffff",
     "assistantIconUrl": "https://my-docs.example.com/logo.svg",
-    "systemPrompt": "You are a documentation assistant for {{ APP_NAME }}.\n\n{{ KNOWLEDGE }}",
+    "systemPrompt": "You are a documentation assistant for \"{{ APP_NAME }}\" ({{ DOMAIN }}). Answer any questions based off your training knowledge below:\n\n{{ KNOWLEDGE }}\n\nDO NOT ANSWER QUESTIONS THAT ARE NOT RELATED TO {{ APP_NAME }} OR ITS DOCUMENTATION. If you do not know the answer, say you do not know.",
     "welcomeMessage": "Hi! Ask me anything about **{{ APP_NAME }}**."
   }'
 ```
 
 The returned `id` is the `siteId` you pass to the VitePress plugin.
 
-## Knowledge files (admin API)
+## Knowledge files (management API)
 
 Knowledge can be supplied two ways:
 
@@ -116,7 +114,7 @@ Knowledge can be supplied two ways:
 ### Example: upload a knowledge file
 
 ```sh
-curl -X PUT "$SERVER_URL/api/sites/$SITE_ID/knowledge" \
+curl -X PUT "$MANAGEMENT_URL/api/sites/$SITE_ID/knowledge" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -F "file=@docs/.vitepress/dist/knowledge/docs.txt"
 ```
@@ -128,7 +126,7 @@ from source:
 
 ```sh
 bun install
-bun --cwd backend dev      # dev: Vite app on :3000 + API on :3001
+bun --cwd backend dev      # dev: Vite app on :3000, public API on :3001, management API on :3002
 bun --cwd backend build    # build -> backend/.output/{server,public}
 bun --cwd backend preview  # build + run the production bundle
 ```

@@ -1,12 +1,12 @@
 // Dev orchestrator: runs the Vite dev server (app) and the backend together.
 // Vite serves the app on :3000 and proxies /api, /ask-ai.js, /privacy-policy
-// to the backend on :3001. The backend emits JSON logs, which we pipe through
-// pino-pretty for human-friendly dev output.
+// to the public backend on :3001. Management API is on :3002.
+// The backend emits JSON logs, which we pipe through pino-pretty for human-friendly dev output.
 
 const backend = Bun.spawn(["bun", "--watch", "server/index.ts"], {
   stdout: "pipe",
   stderr: "inherit",
-  env: { ...process.env, PORT: "3001" },
+  env: { ...process.env, PORT: "3001", MANAGEMENT_PORT: "3002" },
 });
 
 const pretty = Bun.spawn(["bunx", "pino-pretty"], {

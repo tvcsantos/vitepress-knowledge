@@ -6,9 +6,10 @@ To get started, install [Bun](https://bun.sh) and install dependencies:
 bun i
 ```
 
-Next, you're gonna need an API key for gemini. Get it here: https://aistudio.google.com
-
-Then copy `backend/.env.template` to `backend/.env`, filling out the token.
+Next, copy `backend/.env.template` to `backend/.env` and fill in your LiteLLM
+proxy details (`LITELLM_BASE_URL`, `LITELLM_API_KEY`, `LITELLM_MODELS`). The
+server uses LiteLLM as its only model backend, so any provider (OpenAI, Gemini,
+Anthropic, Azure, Ollama, etc.) is configured there.
 
 After you've added the secret, you should be able to run the test docs website:
 
@@ -18,11 +19,12 @@ bun dev
 
 Click the "Ask AI" button in the bottom right corner, and you should be able to chat with the AI!
 
-> During development, there are 3 servers running:
+> During development, there are 4 servers running:
 >
 > 1. http://localhost:5173 - The VitePress website
-> 2. http://localhost:3000 - The Chat UI (with proxy to chat API)
-> 3. http://localhost:3001 - The Chat API
+> 2. http://localhost:3000 - The Chat UI (with proxy to the public API)
+> 3. http://localhost:3001 - The public API (chat, models, assets)
+> 4. http://localhost:3002 - The management API (sites, knowledge, health)
 >
 > Most of the time, you can validate your changes against the VitePress site or chat UI.
 

@@ -28,8 +28,9 @@ Generate knowledge files for AI models to use. This plugin works by converting t
    });
    ```
 
-   `serverUrl` + `siteId` add the "Ask AI" button and chat window to your site. If
-   you only want to generate knowledge files (no chat UI), you can omit `serverUrl`.
+   Both `serverUrl` and `siteId` are required when you want the "Ask AI" button
+   and chat window. If you only want to generate knowledge files without the chat
+   UI, omit `serverUrl` (but `siteId` is still required to identify your site).
 
 2. Build your site:
 
