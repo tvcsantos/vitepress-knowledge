@@ -79,7 +79,7 @@ curl -X POST "https://chat.your-docs.com/api/sites" \
     "brandColor": "#00ADEF",
     "brandContentColor": "#ffffff",
     "assistantIconUrl": "https://your-docs.com/logo.svg",
-    "systemPrompt": "You are a documentation assistant for {{ APP_NAME }}.\n\n{{ KNOWLEDGE }}",
+    "systemPrompt": "You are a documentation assistant for \"{{ APP_NAME }}\" ({{ DOMAIN }}). Answer any questions based off your training knowledge below:\n\n{{ KNOWLEDGE }}\n\nDO NOT ANSWER QUESTIONS THAT ARE NOT RELATED TO {{ APP_NAME }} OR ITS DOCUMENTATION. If you do not know the answer, say you do not know.",
     "welcomeMessage": "Hi! Ask me anything about **{{ APP_NAME }}**."
   }'
 ```
