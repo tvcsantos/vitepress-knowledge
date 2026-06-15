@@ -50,9 +50,9 @@ services:
 ```yaml
 # litellm-config.yaml
 model_list:
-  - model_name: gpt-4o-mini          # alias exposed to clients (matches LITELLM_MODELS above)
+  - model_name: gpt-4o-mini # alias exposed to clients (matches LITELLM_MODELS above)
     litellm_params:
-      model: openai/gpt-4o-mini      # provider/model notation (see https://docs.litellm.ai/docs/providers)
+      model: openai/gpt-4o-mini # provider/model notation (see https://docs.litellm.ai/docs/providers)
       api_key: os.environ/OPENAI_API_KEY
 ```
 

@@ -28,7 +28,7 @@ database and managed through the [sites API](#sites-admin-api).
 | `DATABASE_SQLITE_PATH` | `data/knowledge.db`     | Path to the SQLite file. Knowledge files are stored alongside it under `<dir>/knowledge/<siteId>/`.                                                             |
 | `PORT`                 | `5174`                  | Port the server listens on. (The Docker image defaults this to `3000`.)                                                                                         |
 | `LOG_LEVEL`            | `info`                  | Pino log level: `trace` \| `debug` \| `info` \| `warn` \| `error` \| `fatal` \| `silent`.                                                                       |
-| `DISABLE_CORS`         | `false`                 | Set to `true` to skip all CORS enforcement. Useful when the server is behind a reverse proxy (e.g. nginx, Traefik, AWS ALB) that already handles CORS headers.   |
+| `DISABLE_CORS`         | `false`                 | Set to `true` to skip all CORS enforcement. Useful when the server is behind a reverse proxy (e.g. nginx, Traefik, AWS ALB) that already handles CORS headers.  |
 | `ADMIN_TOKEN`          | -                       | Bearer token protecting the admin APIs (site management + knowledge upload). If unset, those APIs are open (not recommended). Generate: `openssl rand -hex 32`. |
 
 ## Public API
