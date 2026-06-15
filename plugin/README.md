@@ -3,7 +3,7 @@
 > This page only documents the NPM package options. [See this page to get started](../README.md).
 
 ```sh
-pnpm i vitepress-knowledge
+pnpm i @tvcsantos/vitepress-knowledge
 ```
 
 Generate knowledge files for AI models to use. This plugin works by converting the final HTML files rendered by Vitepress back into markdown, then merging them into one (or more) files that is hosted on the production version of your website.
@@ -15,7 +15,7 @@ Generate knowledge files for AI models to use. This plugin works by converting t
    ```ts
    // docs/.vitepress/config.ts
    import { defineConfig } from "vitepress";
-   import knowledge from "vitepress-knowledge";
+   import knowledge from "@tvcsantos/vitepress-knowledge";
 
    export default defineConfig({
      extends: knowledge({

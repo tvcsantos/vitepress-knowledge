@@ -87,16 +87,16 @@ curl -X POST "https://chat.your-docs.com/api/sites" \
 ### Add the Plugin
 
 Knowledge files are your markdown documentation merged into one or more text files
-that the LLM uses as its "knowledge". Add the `vitepress-knowledge` package:
+that the LLM uses as its "knowledge". Add the `@tvcsantos/vitepress-knowledge` package:
 
 ```bash
-npm i -D vitepress-knowledge
+npm i -D @tvcsantos/vitepress-knowledge
 ```
 
 ```ts
 // docs/.vitepress/config.ts
 import { defineConfig } from "vitepress";
-import knowledge from "vitepress-knowledge";
+import knowledge from "@tvcsantos/vitepress-knowledge";
 
 export default defineConfig({
   extends: knowledge({

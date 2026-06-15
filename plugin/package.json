@@ -1,5 +1,5 @@
 {
-  "name": "vitepress-knowledge",
+  "name": "@tvcsantos/vitepress-knowledge",
   "description": "VitePress plugin for generating AI knowledge files for LLMs",
   "version": "0.4.3",
   "license": "MIT",
