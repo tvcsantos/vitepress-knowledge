@@ -28,6 +28,8 @@ const DATABASE_SQLITE_PATH =
 
 const PORT = Number(process.env.PORT) || 5174;
 const LOG_LEVEL = process.env.LOG_LEVEL?.trim() || "info";
+/** Set to true to skip all CORS enforcement (e.g. when behind a reverse proxy that handles it). */
+const DISABLE_CORS = process.env.DISABLE_CORS?.trim().toLowerCase() === "true";
 
 // Admin
 
@@ -42,6 +44,7 @@ const env = {
   DATABASE_SQLITE_PATH,
   PORT,
   LOG_LEVEL,
+  DISABLE_CORS,
   ADMIN_TOKEN,
 };
 export default env;
@@ -55,6 +58,7 @@ createLogger("env").info(
     DATABASE_SQLITE_PATH,
     PORT,
     LOG_LEVEL,
+    DISABLE_CORS,
     LITELLM_API_KEY: LITELLM_API_KEY ? "<set>" : "<unset>",
     ADMIN_TOKEN: ADMIN_TOKEN ? "<set>" : "<unset>",
   },

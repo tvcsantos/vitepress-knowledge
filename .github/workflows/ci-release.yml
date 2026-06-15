@@ -1,17 +1,24 @@
 name: Release (CI)
 
-# Publishes the Docker image for tags pushed manually (by a user). Tags created
-# by the "Release Backend (Manual)" workflow do NOT trigger this - a tag pushed
-# with the automatic GITHUB_TOKEN can't trigger other workflows - so that flow
-# calls the reusable publish workflow directly instead.
+# Publishes artifacts for tags pushed manually (by a user).
+#   backend-v*.*.*  -> Docker image pushed to GHCR
+#   plugin-v*.*.*   -> npm package published to npmjs.com
+#
+# Tags created by the "Release * (Manual)" dispatch workflows do NOT trigger
+# this file - a tag pushed with the automatic GITHUB_TOKEN can't trigger other
+# workflows - so those flows call the reusable publish workflows directly.
 on:
   push:
     tags:
       - "backend-v*.*.*"
+      - "plugin-v*.*.*"
 
 jobs:
-  version:
-    name: Resolve version
+  # --- backend-v* path ---------------------------------------------------
+
+  backend-version:
+    name: Resolve backend version
+    if: startsWith(github.ref_name, 'backend-v')
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -20,13 +27,26 @@ jobs:
         # backend-v1.2.3 -> 1.2.3
         run: echo "version=${GITHUB_REF_NAME#backend-v}" >> "$GITHUB_OUTPUT"
 
-  publish:
+  publish-docker:
     name: Publish Docker image
-    needs: version
+    needs: backend-version
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/reusable-publish-docker.yml
     with:
-      version: ${{ needs.version.outputs.version }}
+      version: ${{ needs.backend-version.outputs.version }}
       ref: ${{ github.ref }}
+
+  # --- plugin-v* path ----------------------------------------------------
+
+  publish-npm:
+    name: Publish npm package
+    if: startsWith(github.ref_name, 'plugin-v')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-publish-npm.yml
+    with:
+      ref: ${{ github.ref }}
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

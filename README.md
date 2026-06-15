@@ -28,14 +28,37 @@ services:
     environment:
       # LiteLLM proxy (configure your model providers there)
       LITELLM_BASE_URL: http://litellm:4000
-      LITELLM_API_KEY: sk-... # your LiteLLM proxy key
+      LITELLM_API_KEY: sk-my-proxy-key # must match LITELLM_MASTER_KEY below
       LITELLM_MODELS: gpt-4o-mini:GPT 4o Mini
       # Protects the site/knowledge admin APIs
       ADMIN_TOKEN: change-me # openssl rand -hex 32
+    depends_on:
+      - litellm
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml
+    environment:
+      LITELLM_MASTER_KEY: sk-my-proxy-key # key that clients use to authenticate
+      OPENAI_API_KEY: sk-... # your actual provider key (passed to litellm_params)
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+```
+
+```yaml
+# litellm-config.yaml
+model_list:
+  - model_name: gpt-4o-mini          # alias exposed to clients (matches LITELLM_MODELS above)
+    litellm_params:
+      model: openai/gpt-4o-mini      # provider/model notation (see https://docs.litellm.ai/docs/providers)
+      api_key: os.environ/OPENAI_API_KEY
 ```
 
 See [`backend/README.md`](backend/README.md) for the full list of environment
-variables.
+variables, and the [LiteLLM proxy docs](https://docs.litellm.ai/docs/simple_proxy)
+for how to add other providers (Anthropic, Azure, Gemini, Ollama, etc.).
 
 ### Register a Site
 

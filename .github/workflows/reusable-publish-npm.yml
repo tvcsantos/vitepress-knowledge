@@ -1,0 +1,44 @@
+name: Publish npm package
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Git ref to build from (defaults to the triggering ref)"
+        required: false
+        type: string
+        default: ""
+    secrets:
+      NPM_TOKEN:
+        description: "npm access token with publish rights"
+        required: true
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+    name: Publish npm package
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        working-directory: plugin
+        run: bun install --frozen-lockfile
+
+      - name: Publish to npm
+        working-directory: plugin
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+          bun publish --access public

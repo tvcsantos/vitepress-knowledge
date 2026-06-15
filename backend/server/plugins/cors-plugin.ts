@@ -2,6 +2,7 @@ import { createMiddleware } from "hono/factory";
 import { db } from "../dependencies";
 import { siteToConfig } from "../utils/site-config";
 import { createLogger } from "../utils/logger";
+import env from "../utils/env";
 
 const log = createLogger("cors");
 
@@ -48,8 +49,16 @@ export function invalidateCorsCache(siteId: string): void {
 const CORS_METHODS = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
 const CORS_HEADERS = "Content-Type, Authorization, X-Site-ID";
 
-/** Per-site dynamic CORS. Reads siteId from the X-Site-ID header or ?siteId= query param. */
+/** Per-site dynamic CORS. Reads siteId from the X-Site-ID header or ?siteId= query param.
+ *  When DISABLE_CORS=true (e.g. behind a reverse proxy that handles CORS), the middleware
+ *  is a no-op: no headers are set and preflight requests are passed through normally.
+ */
 export const corsMiddleware = createMiddleware(async (c, next) => {
+  if (env.DISABLE_CORS) {
+    log.debug("CORS disabled via DISABLE_CORS=true, skipping");
+    return next();
+  }
+
   const siteId = c.req.header("x-site-id") ?? c.req.query("siteId");
   const allowedOrigins = siteId ? getCachedOrigins(siteId) : undefined;
 
