@@ -25,6 +25,9 @@ spec:
             - name: http
               containerPort: 5174
               protocol: TCP
+            - name: management
+              containerPort: 5175
+              protocol: TCP
           envFrom:
             - secretRef:
                 name: vitepress-knowledge-server
@@ -33,13 +36,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /api/health
-              port: http
+              port: management
             initialDelaySeconds: 10
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /api/health
-              port: http
+              port: management
             initialDelaySeconds: 5
             periodSeconds: 10
           volumeMounts:

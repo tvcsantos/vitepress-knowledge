@@ -16,10 +16,6 @@ export const siteApis = new Hono()
     requireAdmin(c.req.raw);
     return c.json(await db.sites.getAll());
   })
-  // Get the default site (only when exactly one site exists; null otherwise).
-  .get("/default", async (c) => {
-    return c.json((await db.sites.getDefault()) ?? null);
-  })
   // Create a new site.
   .post("/", zValidator("json", SiteInsert), async (c) => {
     requireAdmin(c.req.raw);

@@ -4,7 +4,10 @@ metadata:
   name: vitepress-knowledge-server
 data:
   # --- Server ---
+  # Public port: chat UI, chat API, model list, static assets
   PORT: "5174"
+  # Management port: site CRUD, knowledge upload, health check (keep internal)
+  MANAGEMENT_PORT: "5175"
   # Log level: trace | debug | info | warn | error | fatal | silent
   LOG_LEVEL: "info"
 

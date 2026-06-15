@@ -12,4 +12,7 @@ spec:
       port: 80
       targetPort: http
       protocol: TCP
+    # Management port is intentionally not exposed here — it should only be
+    # reachable within the cluster (e.g. from CI jobs or internal tooling).
+    # To call it from within the cluster: <pod-ip>:5175 or use kubectl port-forward.
   type: ClusterIP

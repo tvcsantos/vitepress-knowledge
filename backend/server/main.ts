@@ -20,59 +20,77 @@ const PUBLIC_DIR = process.env.PUBLIC_DIR || join(import.meta.dir, "../public");
 
 const log = createLogger("http");
 
-const apiApp = new Hono()
-  .route("/models", modelApis)
-  .route("/chat", chatApis)
-  // site-apis and knowledge-apis both live under /sites
-  .route("/sites", siteApis)
-  .route("/sites", knowledgeApis)
-  // Returns 200 so the ALB health check (success-codes: 200) passes.
-  .get("/health", (c) => c.text("OK"));
+function makeErrorHandler(label: string) {
+  return (err: Error, c: import("hono").Context) => {
+    const status = err instanceof HTTPException ? err.status : 500;
+    // Only server errors get an error-level line with the stack here; the request
+    // logger already records a summary line (with status) for every request, so
+    // 4xx client errors don't need a second log entry.
+    if (status >= 500) {
+      log.error(
+        { server: label, method: c.req.method, path: new URL(c.req.url).pathname, err },
+        "unhandled error",
+      );
+    }
+    if (err instanceof HTTPException) return err.getResponse();
+    return c.json({ message: "Internal Server Error" }, 500);
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Public app — chat UI, chat API, model list, static assets
+// Intended to be exposed to the internet (behind a proxy/ALB).
+// ---------------------------------------------------------------------------
 
 // Serve index.html with runtime template vars applied for the resolved site.
 async function serveSpa(c: import("hono").Context) {
   const siteId = new URL(c.req.url).searchParams.get("siteId");
-  const site = siteId
-    ? await db.sites.get(siteId)
-    : await db.sites.getDefault();
+
+  if (!siteId)
+    throw new HTTPException(400, { message: "siteId query param is required" });
+
+  const site = await db.sites.get(siteId);
+
+  if (!site)
+    throw new HTTPException(404, { message: `Site '${siteId}' not found` });
+
   const html = await Bun.file(join(PUBLIC_DIR, "index.html")).text();
   c.header("content-type", "text/html");
-  return c.body(site ? applyAppTemplateVars(html, siteToConfig(site)) : html);
+  return c.body(applyAppTemplateVars(html, siteToConfig(site)));
 }
 
-const app = new Hono();
+export const publicApp = new Hono();
 
-app.use(corsMiddleware);
-app.use(requestLoggerMiddleware);
+publicApp.use(corsMiddleware);
+publicApp.use(requestLoggerMiddleware);
+publicApp.onError(makeErrorHandler("public"));
 
-app.onError((err, c) => {
-  const status = err instanceof HTTPException ? err.status : 500;
-  // Only server errors get an error-level line with the stack here; the request
-  // logger already records a summary line (with status) for every request, so
-  // 4xx client errors don't need a second log entry.
-  if (status >= 500) {
-    log.error(
-      { method: c.req.method, path: new URL(c.req.url).pathname, err },
-      "unhandled error",
-    );
-  }
-  if (err instanceof HTTPException) return err.getResponse();
-  return c.json({ message: "Internal Server Error" }, 500);
-});
-
-app.route("/api", apiApp);
-app.route("/", assetApis);
+publicApp.route("/api/models", modelApis);
+publicApp.route("/api/chat", chatApis);
+publicApp.route("/", assetApis);
 
 // SPA entry point.
-app.get("/", serveSpa);
+publicApp.get("/", serveSpa);
 // Static assets from the built public dir.
-app.get("/*", serveStatic({ root: PUBLIC_DIR }));
+publicApp.get("/*", serveStatic({ root: PUBLIC_DIR }));
 // Unmatched routes: a missing file (has an extension) is a 404; otherwise fall
 // back to the SPA shell so client-side routing can handle it.
-app.notFound((c) => {
+publicApp.notFound((c) => {
   const path = new URL(c.req.url).pathname;
   if (/\.[^/]+$/.test(path)) return c.body(null, 404);
   return serveSpa(c);
 });
 
-export default app;
+// ---------------------------------------------------------------------------
+// Management app — site CRUD, knowledge file upload, health check
+// Should only be accessible internally (not exposed to the internet).
+// ---------------------------------------------------------------------------
+
+export const managementApp = new Hono();
+
+managementApp.use(requestLoggerMiddleware);
+managementApp.onError(makeErrorHandler("management"));
+
+managementApp.route("/api/sites", siteApis);
+managementApp.route("/api/sites", knowledgeApis);
+managementApp.get("/api/health", (c) => c.text("OK"));

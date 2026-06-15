@@ -103,10 +103,6 @@ export async function createSqliteKnowledgeDatabase(): Promise<KnowledgeDatabase
 
     sites: {
       getAll: async () => (await db.query.sites.findMany()).map(siteFromDb),
-      getDefault: async () => {
-        const rows = await db.query.sites.findMany({ limit: 2 });
-        return rows.length === 1 ? siteFromDb(rows[0]) : undefined;
-      },
       get: async (id) => {
         const row = await db.query.sites.findFirst({ where: eq(sites.id, id) });
         return row ? siteFromDb(row) : undefined;

@@ -16,6 +16,7 @@ COPY --from=builder /build/backend/.output/server ./server
 COPY --from=builder /build/backend/.output/public ./public
 RUN chown -R bun:bun /usr/src/app
 USER bun
-# Default port for `docker run`; overridden by the k8s ConfigMap in production.
+# Default ports for `docker run`; overridden by the k8s ConfigMap in production.
 ENV PORT=3000
+ENV MANAGEMENT_PORT=3001
 ENTRYPOINT [ "bun", "run", "server/index.js" ]

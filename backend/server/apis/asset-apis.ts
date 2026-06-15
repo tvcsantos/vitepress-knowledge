@@ -11,19 +11,13 @@ export const assetApis = new Hono()
   .get("/ask-ai.js", async (c) => {
     const siteId = c.req.query("siteId");
 
-    // If no siteId is provided fall back to the first site (e.g. the default
-    // site seeded on first boot). This keeps the dev preview working without
-    // a ?siteId= param.
-    const site = siteId
-      ? await db.sites.get(siteId)
-      : await db.sites.getDefault();
+    if (!siteId)
+      throw new HTTPException(400, { message: "siteId query param is required" });
+
+    const site = await db.sites.get(siteId);
 
     if (!site)
-      throw new HTTPException(404, {
-        message: siteId
-          ? `Site '${siteId}' not found`
-          : "siteId is required when multiple sites are configured",
-      });
+      throw new HTTPException(404, { message: `Site '${siteId}' not found` });
 
     c.header("Content-Type", "application/javascript");
     return c.body(

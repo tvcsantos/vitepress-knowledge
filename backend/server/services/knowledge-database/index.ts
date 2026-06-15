@@ -22,8 +22,6 @@ export interface KnowledgeDatabase {
   sites: {
     /** Get all sites. */
     getAll: () => Promise<Site[]>;
-    /** Get the default site - only returns a value when exactly one site exists. */
-    getDefault: () => Promise<Site | undefined>;
     /** Get a site by its ID. */
     get: (id: Site["id"]) => Promise<Site | undefined>;
     /** Insert a site. */
