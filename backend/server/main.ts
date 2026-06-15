@@ -28,7 +28,12 @@ function makeErrorHandler(label: string) {
     // 4xx client errors don't need a second log entry.
     if (status >= 500) {
       log.error(
-        { server: label, method: c.req.method, path: new URL(c.req.url).pathname, err },
+        {
+          server: label,
+          method: c.req.method,
+          path: new URL(c.req.url).pathname,
+          err,
+        },
         "unhandled error",
       );
     }

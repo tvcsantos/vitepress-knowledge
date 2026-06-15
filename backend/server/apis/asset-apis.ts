@@ -12,7 +12,9 @@ export const assetApis = new Hono()
     const siteId = c.req.query("siteId");
 
     if (!siteId)
-      throw new HTTPException(400, { message: "siteId query param is required" });
+      throw new HTTPException(400, {
+        message: "siteId query param is required",
+      });
 
     const site = await db.sites.get(siteId);
 
